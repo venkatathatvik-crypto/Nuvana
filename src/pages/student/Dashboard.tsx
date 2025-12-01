@@ -1,14 +1,17 @@
 import { motion } from "framer-motion";
-import { BookOpen, Calendar, FileText, Bell, Award, Users } from "lucide-react";
+import { BookOpen, Calendar, FileText, Bell, Award, Users, StickyNote } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
+
   const quickStats = [
-    { label: "Attendance", value: "87%", icon: Users, color: "text-neon-cyan" },
-    { label: "Upcoming Tests", value: "3", icon: Calendar, color: "text-neon-purple" },
-    { label: "Assignments", value: "5", icon: FileText, color: "text-neon-pink" },
-    { label: "Average Marks", value: "82%", icon: Award, color: "text-neon-blue" },
+    { label: "Attendance", value: "87%", icon: Users, color: "text-neon-cyan", path: "/student/attendance" },
+    { label: "Upcoming Tests", value: "3", icon: Calendar, color: "text-neon-purple", path: "/student/events" },
+    { label: "Assignments", value: "5", icon: FileText, color: "text-neon-pink", path: "/student/events" },
+    { label: "Average Marks", value: "82%", icon: Award, color: "text-neon-blue", path: "/student/marks" },
   ];
 
   const todayClasses = [
@@ -45,7 +48,10 @@ const Dashboard = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card className="glass-card p-6 hover:neon-glow transition-all duration-300">
+              <Card 
+                className="glass-card p-6 hover:neon-glow transition-all duration-300 cursor-pointer"
+                onClick={() => navigate(stat.path)}
+              >
                 <div className="flex items-center justify-between">
                   <div>
                     <p className="text-sm text-muted-foreground">{stat.label}</p>
@@ -119,17 +125,29 @@ const Dashboard = () => {
           transition={{ delay: 0.6 }}
           className="grid grid-cols-2 md:grid-cols-3 gap-4"
         >
-          <Button className="h-24 text-lg glass hover:neon-glow" variant="outline">
+          <Button 
+            className="h-24 text-lg glass hover:neon-glow" 
+            variant="outline"
+            onClick={() => navigate("/student/books")}
+          >
             <BookOpen className="mr-2 w-6 h-6" />
             Books
           </Button>
-          <Button className="h-24 text-lg glass hover:neon-glow" variant="outline">
-            <FileText className="mr-2 w-6 h-6" />
+          <Button 
+            className="h-24 text-lg glass hover:neon-glow" 
+            variant="outline"
+            onClick={() => navigate("/student/notes")}
+          >
+            <StickyNote className="mr-2 w-6 h-6" />
             Notes
           </Button>
-          <Button className="h-24 text-lg glass hover:neon-glow" variant="outline">
-            <Award className="mr-2 w-6 h-6" />
-            Marks
+          <Button 
+            className="h-24 text-lg glass hover:neon-glow" 
+            variant="outline"
+            onClick={() => navigate("/student/timetable")}
+          >
+            <Calendar className="mr-2 w-6 h-6" />
+            Timetable
           </Button>
         </motion.div>
       </div>

@@ -2,13 +2,15 @@ import { motion } from "framer-motion";
 import { Upload, Users, FileText, Bell, Calendar, TrendingUp } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 
 const TeacherDashboard = () => {
+  const navigate = useNavigate();
   const quickActions = [
-    { label: "Upload Marks", icon: Upload, color: "text-neon-purple" },
-    { label: "Post Attendance", icon: Users, color: "text-neon-cyan" },
-    { label: "Upload Files", icon: FileText, color: "text-neon-pink" },
-    { label: "Send Announcement", icon: Bell, color: "text-neon-blue" },
+    { label: "Upload Marks", icon: Upload, color: "text-neon-purple", path: "/teacher/marks" },
+    { label: "Post Attendance", icon: Users, color: "text-neon-cyan", path: "/teacher/attendance" },
+    { label: "Upload Files", icon: FileText, color: "text-neon-pink", path: "/teacher/files" },
+    { label: "Send Announcement", icon: Bell, color: "text-neon-blue", path: "/teacher/announcements" },
   ];
 
   const classStats = [
@@ -46,7 +48,11 @@ const TeacherDashboard = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Button className="w-full h-32 glass-card hover:neon-glow flex flex-col gap-3 text-lg" variant="outline">
+              <Button 
+                className="w-full h-32 glass-card hover:neon-glow flex flex-col gap-3 text-lg" 
+                variant="outline"
+                onClick={() => navigate(action.path)}
+              >
                 <action.icon className={`w-8 h-8 ${action.color}`} />
                 {action.label}
               </Button>
