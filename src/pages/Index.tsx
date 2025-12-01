@@ -25,7 +25,8 @@ const Index = () => {
             Nuvana360
           </h1>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-            Your complete 360° academic companion for learning, teaching, and thriving
+            Your complete 360° academic companion for learning, teaching, and
+            thriving
           </p>
         </motion.div>
 
@@ -43,7 +44,8 @@ const Index = () => {
               <BookOpen className="w-16 h-16 text-neon-cyan group-hover:scale-110 transition-transform" />
               <h2 className="text-3xl font-bold">Student Mode</h2>
               <p className="text-muted-foreground">
-                Access your personalized dashboard with attendance, marks, timetable, books, and more
+                Access your personalized dashboard with attendance, marks,
+                timetable, books, and more
               </p>
               <Button className="w-full mt-4" size="lg">
                 Enter as Student
@@ -59,7 +61,8 @@ const Index = () => {
               <Users className="w-16 h-16 text-neon-purple group-hover:scale-110 transition-transform" />
               <h2 className="text-3xl font-bold">Teacher Mode</h2>
               <p className="text-muted-foreground">
-                Manage classes, upload marks, post attendance, share files, and make announcements
+                Manage classes, upload marks, post attendance, share files, and
+                make announcements
               </p>
               <Button className="w-full mt-4" size="lg" variant="secondary">
                 Enter as Teacher

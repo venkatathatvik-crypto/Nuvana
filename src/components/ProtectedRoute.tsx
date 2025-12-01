@@ -1,0 +1,38 @@
+import { Navigate } from "react-router-dom";
+import { useAuth } from "@/auth/AuthContext";
+import { UserRole } from "@/lib/auth";
+import { ReactNode } from "react";
+import LoadingSpinner from "./LoadingSpinner";
+
+interface ProtectedRouteProps {
+  children: ReactNode;
+  role?: UserRole;
+}
+
+const ProtectedRoute = ({ children, role }: ProtectedRouteProps) => {
+  const { session, profile, loading, profileLoading } = useAuth();
+
+  // Wait for initial auth check
+  if (loading) return <LoadingSpinner />;
+
+  // If no session, redirect to login
+  if (!session) return <Navigate to="/login" />;
+
+  // If we have a session but profile is still loading, wait
+  if (profileLoading) return <LoadingSpinner />;
+
+  // If role is required but profile doesn't exist or role doesn't match
+  if (role) {
+    if (!profile) {
+      // Profile failed to load, redirect to login
+      return <Navigate to="/login" />;
+    }
+    if (profile.role !== role) {
+      return <Navigate to="/NotFound" />;
+    }
+  }
+
+  return <>{children}</>;
+};
+
+export default ProtectedRoute;

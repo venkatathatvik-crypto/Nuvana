@@ -1,77 +1,100 @@
-
-export type UserRole = 'student' | 'teacher';
+import { supabase } from "@/supabase/client";
+export type UserRole = "student" | "teacher";
 
 export interface User {
   id: string;
-  name: string;
   email: string;
-  role: UserRole;
-  avatar?: string;
 }
 
-// Mock user data
-const MOCK_USERS: User[] = [
-  {
-    id: '1',
-    name: 'Alex Student',
-    email: 'student@nuvana.com',
-    role: 'student',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Alex'
-  },
-  {
-    id: '2',
-    name: 'Sarah Teacher',
-    email: 'teacher@nuvana.com',
-    role: 'teacher',
-    avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah'
-  }
-];
+export interface UserProfile {
+  id: string;
+  role: UserRole;
+  name: string;
+  avatar_url?: string;
+  created_at: string;
+}
+
+export interface AuthenticatedUser {
+  user: User;
+  profile: UserProfile;
+}
 
 export const authService = {
-  async login(email: string, role: UserRole): Promise<User> {
-    // Simulate API delay
-    await new Promise(resolve => setTimeout(resolve, 1000));
+  async login(
+    email: string,
+    password: string
+  ): Promise<AuthenticatedUser | null> {
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email, // Use the passed email parameter
+      password, // Use the passed password parameter
+    });
 
-    // For demo purposes, we accept any password and just check email/role or return a default user
-    const user = MOCK_USERS.find(u => u.email === email && u.role === role) || {
-      id: Math.random().toString(36).substr(2, 9),
-      name: email.split('@')[0],
-      email,
-      role,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${email}`
+    if (error) {
+      throw new Error(error.message);
+    }
+
+    if (!data.user) {
+      return null;
+    }
+
+    console.log("Login Data:", data);
+
+    const profile = await authService.getProfile(data.user.id);
+
+    return {
+      user: data.user as unknown as User,
+      profile,
     };
-
-    localStorage.setItem('nuvana_user', JSON.stringify(user));
-    return user;
   },
 
-  async signup(name: string, email: string, role: UserRole): Promise<User> {
-    await new Promise(resolve => setTimeout(resolve, 1000));
-    
-    const user: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      name,
-      email,
-      role,
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`
-    };
+  async signup(
+    name: string,
+    email: string,
+    role: UserRole,
+    password: string
+  ): Promise<void> {
+    try {
+      const { data, error: signUpError } = await supabase.auth.signUp({
+        email: email,
+        password: password,
+        options: {
+          data: {
+            role,
+            name,
+          },
+        },
+      });
 
-    localStorage.setItem('nuvana_user', JSON.stringify(user));
-    return user;
+      if (signUpError) throw signUpError;
+
+      console.log(data);
+      alert("Check your email for the confirmation link!");
+    } catch (error) {
+      console.error("Sign Up Error:", error.message);
+      throw new Error(error.message);
+    }
   },
 
   async logout(): Promise<void> {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    localStorage.removeItem('nuvana_user');
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      throw new Error(error.message);
+    }
   },
 
-  getUser(): User | null {
-    const userStr = localStorage.getItem('nuvana_user');
-    if (!userStr) return null;
-    try {
-      return JSON.parse(userStr);
-    } catch {
-      return null;
+  async getProfile(userId: string): Promise<UserProfile> {
+    const { data: profile, error } = await supabase
+      .from("profiles")
+      .select("*")
+      .eq("id", userId)
+      .single();
+
+    console.log("Fetched profile : ", profile, userId);
+
+    if (error) {
+      throw new Error(`Failed to fetch user profile: ${error.message}`);
     }
-  }
+
+    return profile as UserProfile;
+  },
 };

@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => ({
   server: {
     host: "::",
     port: 8080,
+    historyApiFallback: true,
   },
   plugins: [
     react(),
@@ -19,7 +20,8 @@ export default defineConfig(({ mode }) => ({
       manifest: {
         name: "Nuvana360",
         short_name: "Nuvana360",
-        description: "Your complete 360° academic companion for learning, teaching, and thriving",
+        description:
+          "Your complete 360° academic companion for learning, teaching, and thriving",
         theme_color: "#0a0a0a",
         background_color: "#0a0a0a",
         display: "standalone",
