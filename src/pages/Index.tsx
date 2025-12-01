@@ -10,7 +10,7 @@ const Index = () => {
   return (
     <div className="min-h-screen relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/10" />
-      
+
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
         <motion.div
           initial={{ opacity: 0, y: -50 }}
@@ -37,7 +37,7 @@ const Index = () => {
         >
           <Card
             className="glass-card p-8 hover:neon-glow transition-all duration-300 cursor-pointer group"
-            onClick={() => navigate("/student")}
+            onClick={() => navigate("/login")}
           >
             <div className="flex flex-col items-center text-center space-y-4">
               <BookOpen className="w-16 h-16 text-neon-cyan group-hover:scale-110 transition-transform" />
@@ -53,7 +53,7 @@ const Index = () => {
 
           <Card
             className="glass-card p-8 hover:neon-glow transition-all duration-300 cursor-pointer group"
-            onClick={() => navigate("/teacher")}
+            onClick={() => navigate("/login")}
           >
             <div className="flex flex-col items-center text-center space-y-4">
               <Users className="w-16 h-16 text-neon-purple group-hover:scale-110 transition-transform" />
