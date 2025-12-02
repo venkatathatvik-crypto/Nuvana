@@ -143,6 +143,46 @@ const App = () => (
                   </ProtectedRoute>
                 }
               />
+              <Route
+                path="/student/tests"
+                element={
+                  <ProtectedRoute role="student">
+                    <StudentTests />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/tests/take/:testId"
+                element={
+                  <ProtectedRoute role="student">
+                    <TestTake />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/profile"
+                element={
+                  <ProtectedRoute role="student">
+                    <StudentProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/feedback"
+                element={
+                  <ProtectedRoute role="student">
+                    <StudentFeedback />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/student/analytics"
+                element={
+                  <ProtectedRoute role="student">
+                    <StudentAnalytics />
+                  </ProtectedRoute>
+                }
+              />
 
               {/* Teacher Protected Routes */}
               <Route
@@ -182,6 +222,70 @@ const App = () => (
                 element={
                   <ProtectedRoute role="teacher">
                     <TeacherAnnouncements />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/teacher/tests"
+                element={
+                  <ProtectedRoute role="teacher">
+                    <TeacherTests />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/teacher/tests/create"
+                element={
+                  <ProtectedRoute role="teacher">
+                    <TestCreate />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/teacher/tests/:testId"
+                element={
+                  <ProtectedRoute role="teacher">
+                    <TestDetails />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/teacher/analytics"
+                element={
+                  <ProtectedRoute role="teacher">
+                    <AnalyticsDashboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/teacher/voice-upload"
+                element={
+                  <ProtectedRoute role="teacher">
+                    <VoiceUpload />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/teacher/admin"
+                element={
+                  <ProtectedRoute role="teacher">
+                    <AdminPanel />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/teacher/profile"
+                element={
+                  <ProtectedRoute role="teacher">
+                    <TeacherProfile />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/teacher/tasks"
+                element={
+                  <ProtectedRoute role="teacher">
+                    <TeacherTasks />
                   </ProtectedRoute>
                 }
               />

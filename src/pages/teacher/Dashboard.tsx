@@ -1,10 +1,22 @@
 import { motion } from "framer-motion";
-import { Upload, Users, FileText, Bell, Calendar, TrendingUp, BarChart2, Mic, LogOut, Shield, CheckSquare } from "lucide-react";
+import {
+  Upload,
+  Users,
+  FileText,
+  Bell,
+  Calendar,
+  TrendingUp,
+  BarChart2,
+  Mic,
+  LogOut,
+  Shield,
+  CheckSquare,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
-import { useAuth } from "@/components/auth/AuthContext";
+import { useAuth } from "@/auth/AuthContext";
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
@@ -15,15 +27,60 @@ const TeacherDashboard = () => {
     navigate("/login");
   };
   const quickActions = [
-    { label: "Upload Marks", icon: Upload, color: "text-neon-purple", path: "/teacher/marks" },
-    { label: "Post Attendance", icon: Users, color: "text-neon-cyan", path: "/teacher/attendance" },
-    { label: "Upload Files", icon: FileText, color: "text-neon-pink", path: "/teacher/files" },
-    { label: "Send Announcement", icon: Bell, color: "text-neon-blue", path: "/teacher/announcements" },
-    { label: "Manage Tests", icon: FileText, color: "text-neon-purple", path: "/teacher/tests" },
-    { label: "Analytics", icon: BarChart2, color: "text-green-500", path: "/teacher/analytics" },
-    { label: "Voice Upload", icon: Mic, color: "text-neon-pink", path: "/teacher/voice-upload" },
-    { label: "Admin Panel", icon: Shield, color: "text-neon-purple", path: "/teacher/admin" },
-    { label: "My Tasks", icon: CheckSquare, color: "text-neon-cyan", path: "/teacher/tasks" },
+    {
+      label: "Upload Marks",
+      icon: Upload,
+      color: "text-neon-purple",
+      path: "/teacher/marks",
+    },
+    {
+      label: "Post Attendance",
+      icon: Users,
+      color: "text-neon-cyan",
+      path: "/teacher/attendance",
+    },
+    {
+      label: "Upload Files",
+      icon: FileText,
+      color: "text-neon-pink",
+      path: "/teacher/files",
+    },
+    {
+      label: "Send Announcement",
+      icon: Bell,
+      color: "text-neon-blue",
+      path: "/teacher/announcements",
+    },
+    {
+      label: "Manage Tests",
+      icon: FileText,
+      color: "text-neon-purple",
+      path: "/teacher/tests",
+    },
+    {
+      label: "Analytics",
+      icon: BarChart2,
+      color: "text-green-500",
+      path: "/teacher/analytics",
+    },
+    {
+      label: "Voice Upload",
+      icon: Mic,
+      color: "text-neon-pink",
+      path: "/teacher/voice-upload",
+    },
+    {
+      label: "Admin Panel",
+      icon: Shield,
+      color: "text-neon-purple",
+      path: "/teacher/admin",
+    },
+    {
+      label: "My Tasks",
+      icon: CheckSquare,
+      color: "text-neon-cyan",
+      path: "/teacher/tasks",
+    },
   ];
 
   const classStats = [
@@ -52,7 +109,9 @@ const TeacherDashboard = () => {
             <h1 className="text-4xl font-bold neon-text mb-2">
               Teacher Dashboard 📚
             </h1>
-            <p className="text-muted-foreground">Manage your classes and students efficiently</p>
+            <p className="text-muted-foreground">
+              Manage your classes and students efficiently
+            </p>
           </div>
           <div className="flex gap-4">
             <Button
@@ -119,8 +178,12 @@ const TeacherDashboard = () => {
                         </p>
                       </div>
                       <div className="text-right">
-                        <p className="text-2xl font-bold text-primary">{cls.avgAttendance}</p>
-                        <p className="text-xs text-muted-foreground">Avg Attendance</p>
+                        <p className="text-2xl font-bold text-primary">
+                          {cls.avgAttendance}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          Avg Attendance
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -146,7 +209,9 @@ const TeacherDashboard = () => {
                     className="p-4 rounded-lg bg-muted/50 border border-border hover:border-primary transition-colors"
                   >
                     <p className="font-medium">{activity.action}</p>
-                    <p className="text-xs text-muted-foreground mt-2">{activity.time}</p>
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {activity.time}
+                    </p>
                   </div>
                 ))}
               </div>
@@ -162,10 +227,19 @@ const TeacherDashboard = () => {
           <Card className="glass-card p-6">
             <h3 className="text-lg font-semibold mb-4">Quick Tips</h3>
             <ul className="space-y-2 text-sm text-muted-foreground">
-              <li>• Upload marks regularly to keep students updated on their progress</li>
+              <li>
+                • Upload marks regularly to keep students updated on their
+                progress
+              </li>
               <li>• Use announcements to communicate important information</li>
-              <li>• Check attendance trends to identify students who need attention</li>
-              <li>• Share study materials and resources to help students learn better</li>
+              <li>
+                • Check attendance trends to identify students who need
+                attention
+              </li>
+              <li>
+                • Share study materials and resources to help students learn
+                better
+              </li>
             </ul>
           </Card>
         </motion.div>

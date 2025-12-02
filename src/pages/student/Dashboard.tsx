@@ -3,7 +3,7 @@ import { BookOpen, Calendar, FileText, Bell, Award, Users, StickyNote, LogOut, B
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useAuth } from "@/components/auth/AuthContext";
+import { useAuth } from "@/auth/AuthContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
