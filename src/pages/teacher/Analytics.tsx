@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
     LineChart,
@@ -29,6 +29,10 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TrendingUp, Users, BookOpen, AlertCircle, Clock, CheckCircle } from "lucide-react";
+import { getTeacherClasses, FlattenedClass } from "@/services/academic";
+import { useAuth } from "@/auth/AuthContext";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { toast } from "sonner";
 
 // Mock Data
 const performanceTrendData = [
@@ -145,8 +149,64 @@ const NEON_COLORS = {
 };
 
 const AnalyticsDashboard = () => {
-    const [selectedClass, setSelectedClass] = useState("Class 10A");
+    const { profile, profileLoading } = useAuth();
+    const [classes, setClasses] = useState<FlattenedClass[]>([]);
+    const [selectedClass, setSelectedClass] = useState<FlattenedClass | undefined>(undefined);
     const [selectedStudent, setSelectedStudent] = useState("S1");
+    const [loading, setLoading] = useState(true);
+
+    // Load classes dynamically for the logged-in teacher
+    useEffect(() => {
+        const fetchClasses = async () => {
+            if (profileLoading) return;
+
+            if (!profile) {
+                setClasses([]);
+                setSelectedClass(undefined);
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const classResponse = await getTeacherClasses(profile.id);
+                if (classResponse && classResponse.length > 0) {
+                    setClasses(classResponse);
+                    setSelectedClass(classResponse[0]); // Set the default class object
+                } else {
+                    setClasses([]);
+                    setSelectedClass(undefined);
+                }
+            } catch (error) {
+                console.error("Error fetching classes for analytics:", error);
+                toast.error("Failed to load classes for analytics.");
+                setClasses([]);
+                setSelectedClass(undefined);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchClasses();
+    }, [profile, profileLoading]);
+
+    const handleClassChange = (classId: string) => {
+        const cls = classes.find((c) => c.class_id === classId);
+        if (cls) {
+            setSelectedClass(cls);
+        }
+    };
+
+    if (loading) {
+        return <LoadingSpinner />;
+    }
+
+    if (!selectedClass) {
+        return (
+            <div className="min-h-screen p-6 flex items-center justify-center text-xl font-semibold text-destructive">
+                No classes available or assigned.
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen p-6 bg-background space-y-8">
@@ -159,14 +219,16 @@ const AnalyticsDashboard = () => {
                     <h1 className="text-4xl font-bold neon-text mb-2">Analytics Dashboard 📊</h1>
                     <p className="text-muted-foreground">Deep insights into student performance</p>
                 </div>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
+                <Select value={selectedClass.class_id} onValueChange={handleClassChange}>
                     <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Select Class" />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="Class 10A">Class 10A</SelectItem>
-                        <SelectItem value="Class 10B">Class 10B</SelectItem>
-                        <SelectItem value="Class 11A">Class 11A</SelectItem>
+                        {classes.map((cls) => (
+                            <SelectItem key={cls.class_id} value={cls.class_id}>
+                                {cls.class_name}
+                            </SelectItem>
+                        ))}
                     </SelectContent>
                 </Select>
             </motion.div>
