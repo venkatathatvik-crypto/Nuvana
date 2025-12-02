@@ -20,6 +20,19 @@ import TeacherAttendance from "./pages/teacher/Attendance";
 import TeacherMarks from "./pages/teacher/Marks";
 import TeacherFiles from "./pages/teacher/Files";
 import TeacherAnnouncements from "./pages/teacher/Announcements";
+import TeacherTests from "./pages/teacher/Tests";
+import TestCreate from "./pages/teacher/TestCreate";
+import TestDetails from "./pages/teacher/TestDetails";
+import AnalyticsDashboard from "./pages/teacher/Analytics";
+import VoiceUpload from "./pages/teacher/VoiceUpload";
+import AdminPanel from "./pages/teacher/Admin";
+import StudentTests from "./pages/student/Tests";
+import TestTake from "./pages/student/TestTake";
+import StudentProfile from "./pages/student/Profile";
+import StudentFeedback from "./pages/student/Feedback";
+import StudentAnalytics from "./pages/student/Analytics";
+import TeacherProfile from "./pages/teacher/Profile";
+import TeacherTasks from "./pages/teacher/Tasks";
 import NotFound from "./pages/NotFound";
 
 import { ThemeProvider } from "@/components/theme-provider";
@@ -54,6 +67,11 @@ const App = () => (
                       <Route path="/notes" element={<StudentNotes />} />
                       <Route path="/events" element={<StudentEvents />} />
                       <Route path="/timetable" element={<StudentTimetable />} />
+                      <Route path="/tests" element={<StudentTests />} />
+                      <Route path="/tests/:id" element={<TestTake />} />
+                      <Route path="/profile" element={<StudentProfile />} />
+                      <Route path="/feedback" element={<StudentFeedback />} />
+                      <Route path="/analytics" element={<StudentAnalytics />} />
                     </Routes>
                   </ProtectedRoute>
                 }
@@ -66,10 +84,18 @@ const App = () => (
                   <ProtectedRoute allowedRoles={['teacher']}>
                     <Routes>
                       <Route path="/" element={<TeacherDashboard />} />
+                      <Route path="/profile" element={<TeacherProfile />} />
                       <Route path="/attendance" element={<TeacherAttendance />} />
                       <Route path="/marks" element={<TeacherMarks />} />
                       <Route path="/files" element={<TeacherFiles />} />
                       <Route path="/announcements" element={<TeacherAnnouncements />} />
+                      <Route path="/tests" element={<TeacherTests />} />
+                      <Route path="/tests/create" element={<TestCreate />} />
+                      <Route path="/tests/:id" element={<TestDetails />} />
+                      <Route path="/analytics" element={<AnalyticsDashboard />} />
+                      <Route path="/voice-upload" element={<VoiceUpload />} />
+                      <Route path="/admin" element={<AdminPanel />} />
+                      <Route path="/tasks" element={<TeacherTasks />} />
                     </Routes>
                   </ProtectedRoute>
                 }

@@ -1,16 +1,29 @@
 import { motion } from "framer-motion";
-import { Upload, Users, FileText, Bell, Calendar, TrendingUp } from "lucide-react";
+import { Upload, Users, FileText, Bell, Calendar, TrendingUp, BarChart2, Mic, LogOut, Shield, CheckSquare } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 
+import { useAuth } from "@/components/auth/AuthContext";
+
 const TeacherDashboard = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
   const quickActions = [
     { label: "Upload Marks", icon: Upload, color: "text-neon-purple", path: "/teacher/marks" },
     { label: "Post Attendance", icon: Users, color: "text-neon-cyan", path: "/teacher/attendance" },
     { label: "Upload Files", icon: FileText, color: "text-neon-pink", path: "/teacher/files" },
     { label: "Send Announcement", icon: Bell, color: "text-neon-blue", path: "/teacher/announcements" },
+    { label: "Manage Tests", icon: FileText, color: "text-neon-purple", path: "/teacher/tests" },
+    { label: "Analytics", icon: BarChart2, color: "text-green-500", path: "/teacher/analytics" },
+    { label: "Voice Upload", icon: Mic, color: "text-neon-pink", path: "/teacher/voice-upload" },
+    { label: "Admin Panel", icon: Shield, color: "text-neon-purple", path: "/teacher/admin" },
+    { label: "My Tasks", icon: CheckSquare, color: "text-neon-cyan", path: "/teacher/tasks" },
   ];
 
   const classStats = [
@@ -33,11 +46,32 @@ const TeacherDashboard = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="flex items-center justify-between"
         >
-          <h1 className="text-4xl font-bold neon-text mb-2">
-            Teacher Dashboard 📚
-          </h1>
-          <p className="text-muted-foreground">Manage your classes and students efficiently</p>
+          <div>
+            <h1 className="text-4xl font-bold neon-text mb-2">
+              Teacher Dashboard 📚
+            </h1>
+            <p className="text-muted-foreground">Manage your classes and students efficiently</p>
+          </div>
+          <div className="flex gap-4">
+            <Button
+              variant="outline"
+              className="glass hover:neon-glow"
+              onClick={() => navigate("/teacher/profile")}
+            >
+              <Users className="mr-2 w-4 h-4" />
+              My Profile
+            </Button>
+            <Button
+              variant="outline"
+              className="glass hover:neon-glow text-destructive hover:text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 w-4 h-4" />
+              Logout
+            </Button>
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -48,8 +82,8 @@ const TeacherDashboard = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Button 
-                className="w-full h-32 glass-card hover:neon-glow flex flex-col gap-3 text-lg" 
+              <Button
+                className="w-full h-32 glass-card hover:neon-glow flex flex-col gap-3 text-lg"
                 variant="outline"
                 onClick={() => navigate(action.path)}
               >

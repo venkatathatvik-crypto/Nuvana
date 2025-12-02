@@ -59,9 +59,11 @@ const Signup = () => {
             <div className="w-full max-w-md space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="text-center space-y-2">
                     <div className="flex justify-center mb-4">
-                        <div className="h-12 w-12 rounded-xl bg-primary flex items-center justify-center shadow-lg shadow-primary/20">
-                            <School className="h-6 w-6 text-primary-foreground" />
-                        </div>
+                        <img
+                            src="/logo.png"
+                            alt="Nuvana360"
+                            className="h-16 w-auto object-contain dark:invert-0 invert"
+                        />
                     </div>
                     <h1 className="text-3xl font-bold tracking-tight">Create an account</h1>
                     <p className="text-muted-foreground">

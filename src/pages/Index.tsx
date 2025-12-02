@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { GraduationCap, BookOpen, Users } from "lucide-react";
+import { BookOpen, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
@@ -11,6 +11,16 @@ const Index = () => {
     <div className="min-h-screen relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/10" />
 
+      {/* Background doodle pattern */}
+      <div
+        className="absolute inset-0 w-full h-full opacity-50 bg-repeat"
+        style={{
+          backgroundImage: 'url(/doodle-bg.png)',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center'
+        }}
+      />
+
       <div className="relative z-10 flex flex-col items-center justify-center min-h-screen p-6">
         <motion.div
           initial={{ opacity: 0, y: -50 }}
@@ -19,11 +29,12 @@ const Index = () => {
           className="text-center mb-12"
         >
           <div className="flex items-center justify-center mb-6">
-            <GraduationCap className="w-20 h-20 text-primary neon-glow" />
+            <img
+              src="/N360 green (1).png"
+              alt="Nuvana360"
+              className="h-32 w-auto object-contain drop-shadow-[0_0_20px_rgba(34,197,94,0.4)]"
+            />
           </div>
-          <h1 className="text-6xl md:text-7xl font-bold mb-4 neon-text">
-            Nuvana360
-          </h1>
           <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
             Your complete 360° academic companion for learning, teaching, and thriving
           </p>
