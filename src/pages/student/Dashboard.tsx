@@ -1,17 +1,25 @@
 import { motion } from "framer-motion";
-import { BookOpen, Calendar, FileText, Bell, Award, Users, StickyNote } from "lucide-react";
+import { BookOpen, Calendar, FileText, Bell, Award, Users, StickyNote, LogOut, BarChart2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/components/auth/AuthContext";
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login");
+  };
 
   const quickStats = [
     { label: "Attendance", value: "87%", icon: Users, color: "text-neon-cyan", path: "/student/attendance" },
     { label: "Upcoming Tests", value: "3", icon: Calendar, color: "text-neon-purple", path: "/student/events" },
     { label: "Assignments", value: "5", icon: FileText, color: "text-neon-pink", path: "/student/events" },
     { label: "Average Marks", value: "82%", icon: Award, color: "text-neon-blue", path: "/student/marks" },
+    { label: "My Analytics", value: "View", icon: BarChart2, color: "text-green-500", path: "/student/analytics" },
   ];
 
   const todayClasses = [
@@ -33,11 +41,32 @@ const Dashboard = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5 }}
+          className="flex items-center justify-between"
         >
-          <h1 className="text-4xl font-bold neon-text mb-2">
-            Welcome back, Student! 👋
-          </h1>
-          <p className="text-muted-foreground">Here's what's happening today</p>
+          <div>
+            <h1 className="text-4xl font-bold neon-text mb-2">
+              Welcome back, Student! 👋
+            </h1>
+            <p className="text-muted-foreground">Here's what's happening today</p>
+          </div>
+          <div className="flex gap-4">
+            <Button
+              variant="outline"
+              className="glass hover:neon-glow"
+              onClick={() => navigate("/student/profile")}
+            >
+              <Users className="mr-2 w-4 h-4" />
+              My Profile
+            </Button>
+            <Button
+              variant="outline"
+              className="glass hover:neon-glow text-destructive hover:text-destructive"
+              onClick={handleLogout}
+            >
+              <LogOut className="mr-2 w-4 h-4" />
+              Logout
+            </Button>
+          </div>
         </motion.div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -48,7 +77,7 @@ const Dashboard = () => {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: index * 0.1 }}
             >
-              <Card 
+              <Card
                 className="glass-card p-6 hover:neon-glow transition-all duration-300 cursor-pointer"
                 onClick={() => navigate(stat.path)}
               >
@@ -104,11 +133,10 @@ const Dashboard = () => {
                 {announcements.map((announcement, index) => (
                   <div
                     key={index}
-                    className={`p-4 rounded-lg border transition-colors ${
-                      announcement.urgent
-                        ? "bg-destructive/10 border-destructive"
-                        : "bg-muted/50 border-border hover:border-primary"
-                    }`}
+                    className={`p-4 rounded-lg border transition-colors ${announcement.urgent
+                      ? "bg-destructive/10 border-destructive"
+                      : "bg-muted/50 border-border hover:border-primary"
+                      }`}
                   >
                     <h3 className="font-semibold">{announcement.title}</h3>
                     <p className="text-xs text-muted-foreground mt-2">{announcement.time}</p>
@@ -125,29 +153,37 @@ const Dashboard = () => {
           transition={{ delay: 0.6 }}
           className="grid grid-cols-2 md:grid-cols-3 gap-4"
         >
-          <Button 
-            className="h-24 text-lg glass hover:neon-glow" 
+          <Button
+            className="h-24 text-lg bg-secondary/50 backdrop-blur-md border-white/10 hover:neon-glow"
             variant="outline"
-            onClick={() => navigate("/student/books")}
+            onClick={() => navigate("/student/timetable")}
           >
-            <BookOpen className="mr-2 w-6 h-6" />
-            Books
+            <Calendar className="mr-2 w-6 h-6" />
+            Timetable
           </Button>
-          <Button 
-            className="h-24 text-lg glass hover:neon-glow" 
+          <Button
+            className="h-24 text-lg bg-secondary/50 backdrop-blur-md border-white/10 hover:neon-glow"
             variant="outline"
             onClick={() => navigate("/student/notes")}
           >
             <StickyNote className="mr-2 w-6 h-6" />
             Notes
           </Button>
-          <Button 
-            className="h-24 text-lg glass hover:neon-glow" 
+          <Button
+            className="h-24 text-lg bg-secondary/50 backdrop-blur-md border-white/10 hover:neon-glow"
             variant="outline"
-            onClick={() => navigate("/student/timetable")}
+            onClick={() => navigate("/student/books")}
           >
-            <Calendar className="mr-2 w-6 h-6" />
-            Timetable
+            <BookOpen className="mr-2 w-6 h-6" />
+            Books
+          </Button>
+          <Button
+            className="h-24 text-lg glass hover:neon-glow"
+            variant="outline"
+            onClick={() => navigate("/student/tests")}
+          >
+            <FileText className="mr-2 w-6 h-6" />
+            My Tests
           </Button>
         </motion.div>
       </div>

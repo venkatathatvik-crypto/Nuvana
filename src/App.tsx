@@ -24,8 +24,21 @@ import TeacherAttendance from "./pages/teacher/Attendance";
 import TeacherMarks from "./pages/teacher/Marks";
 import TeacherFiles from "./pages/teacher/Files";
 import TeacherAnnouncements from "./pages/teacher/Announcements";
-
+import TeacherTests from "./pages/teacher/Tests";
+import TestCreate from "./pages/teacher/TestCreate";
+import TestDetails from "./pages/teacher/TestDetails";
+import AnalyticsDashboard from "./pages/teacher/Analytics";
+import VoiceUpload from "./pages/teacher/VoiceUpload";
+import AdminPanel from "./pages/teacher/Admin";
+import StudentTests from "./pages/student/Tests";
+import TestTake from "./pages/student/TestTake";
+import StudentProfile from "./pages/student/Profile";
+import StudentFeedback from "./pages/student/Feedback";
+import StudentAnalytics from "./pages/student/Analytics";
+import TeacherProfile from "./pages/teacher/Profile";
+import TeacherTasks from "./pages/teacher/Tasks";
 import NotFound from "./pages/NotFound";
+
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import AuthRedirect from "./components/AuthRedirect";
