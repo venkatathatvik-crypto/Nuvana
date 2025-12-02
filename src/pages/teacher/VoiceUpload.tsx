@@ -1,4 +1,4 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { Mic, Square, Upload, Play, Pause, Save, Trash2, Clock, FileAudio } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from "@/components/ui/select";
+import { getClasses, getSubjects, FlattenedClass } from "@/services/academic";
 
 const VoiceUpload = () => {
     const navigate = useNavigate();
@@ -14,6 +22,12 @@ const VoiceUpload = () => {
     const [recordingTime, setRecordingTime] = useState(0);
     const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
     const [isPlaying, setIsPlaying] = useState(false);
+
+    // Dropdown states
+    const [classes, setClasses] = useState<FlattenedClass[]>([]);
+    const [subjects, setSubjects] = useState<string[]>([]);
+    const [selectedClassId, setSelectedClassId] = useState<string>("");
+    const [selectedSubject, setSelectedSubject] = useState<string>("");
 
     // Mock data for existing recordings
     const [recordings, setRecordings] = useState([
@@ -23,7 +37,47 @@ const VoiceUpload = () => {
 
     const timerRef = useRef<NodeJS.Timeout | null>(null);
 
+    // Fetch classes on mount
+    useEffect(() => {
+        const fetchClasses = async () => {
+            try {
+                const data = await getClasses();
+                setClasses(data || []);
+            } catch (error) {
+                console.error("Failed to fetch classes", error);
+                toast.error("Failed to load classes");
+            }
+        };
+        fetchClasses();
+    }, []);
+
+    // Fetch subjects when class changes
+    useEffect(() => {
+        const fetchSubjectsForClass = async () => {
+            if (!selectedClassId) {
+                setSubjects([]);
+                setSelectedSubject("");
+                return;
+            }
+            const selectedClass = classes.find(c => c.class_id === selectedClassId);
+            if (selectedClass) {
+                try {
+                    const data = await getSubjects(selectedClass.grade_id);
+                    setSubjects(data || []);
+                } catch (error) {
+                    console.error("Failed to fetch subjects", error);
+                    toast.error("Failed to load subjects");
+                }
+            }
+        };
+        fetchSubjectsForClass();
+    }, [selectedClassId, classes]);
+
     const startRecording = () => {
+        if (!selectedClassId || !selectedSubject) {
+            toast.error("Please select a class and subject first");
+            return;
+        }
         setIsRecording(true);
         setRecordingTime(0);
         timerRef.current = setInterval(() => {
@@ -49,14 +103,16 @@ const VoiceUpload = () => {
     const handleUpload = () => {
         if (!audioBlob) return;
 
+        const selectedClassName = classes.find(c => c.class_id === selectedClassId)?.class_name || "Unknown Class";
+
         // Mock upload
         const newRecording = {
             id: recordings.length + 1,
-            title: `New Recording ${new Date().toLocaleTimeString()}`,
+            title: `${selectedSubject} - Recording ${new Date().toLocaleTimeString()}`,
             date: new Date().toISOString().split('T')[0],
             duration: formatTime(recordingTime),
             size: "5MB",
-            class: "Class 10A" // Default for now
+            class: selectedClassName
         };
 
         setRecordings([newRecording, ...recordings]);
@@ -93,6 +149,40 @@ const VoiceUpload = () => {
                         <Card className="glass-card p-6 h-full flex flex-col justify-between">
                             <div>
                                 <h2 className="text-2xl font-semibold mb-6">New Recording</h2>
+
+                                <div className="space-y-4 mb-6">
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Class</label>
+                                        <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Class" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {classes.map((cls) => (
+                                                    <SelectItem key={cls.class_id} value={cls.class_id}>
+                                                        {cls.class_name}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <label className="text-sm font-medium">Subject</label>
+                                        <Select value={selectedSubject} onValueChange={setSelectedSubject} disabled={!selectedClassId}>
+                                            <SelectTrigger>
+                                                <SelectValue placeholder="Select Subject" />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                {subjects.map((subject) => (
+                                                    <SelectItem key={subject} value={subject}>
+                                                        {subject}
+                                                    </SelectItem>
+                                                ))}
+                                            </SelectContent>
+                                        </Select>
+                                    </div>
+                                </div>
 
                                 <div className="flex flex-col items-center justify-center p-8 border-2 border-dashed border-border rounded-2xl bg-secondary/10 mb-6">
                                     <div className={`w-32 h-32 rounded-full flex items-center justify-center mb-4 transition-all duration-500 ${isRecording ? 'bg-red-500/20 animate-pulse' : 'bg-primary/20'}`}>

@@ -34,9 +34,14 @@ const TeacherTests = () => {
                     <h1 className="text-4xl font-bold neon-text mb-2">Manage Tests 📝</h1>
                     <p className="text-muted-foreground">Create and manage MCQ assessments</p>
                 </div>
-                <Button onClick={() => navigate("/teacher/tests/create")} className="gap-2">
-                    <Plus className="w-4 h-4" /> Create New Test
-                </Button>
+                <div className="flex gap-4">
+                    <Button variant="outline" onClick={() => navigate("/teacher")}>
+                        Back to Dashboard
+                    </Button>
+                    <Button onClick={() => navigate("/teacher/tests/create")} className="gap-2">
+                        <Plus className="w-4 h-4" /> Create New Test
+                    </Button>
+                </div>
             </motion.div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
