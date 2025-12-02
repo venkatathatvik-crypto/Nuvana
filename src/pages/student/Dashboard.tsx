@@ -4,15 +4,50 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
+import { useEffect, useState } from "react";
+import { getStudentData, getStudentAnnouncements } from "@/services/academic";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { formatDistanceToNow } from "date-fns";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, profile, profileLoading } = useAuth();
+  const [announcements, setAnnouncements] = useState<any[]>([]);
+  const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
+  const [studentClassId, setStudentClassId] = useState<string | null>(null);
 
   const handleLogout = async () => {
     await logout();
     navigate("/login");
   };
+
+  useEffect(() => {
+    const fetchStudentAnnouncements = async () => {
+      if (profileLoading) return;
+
+      if (!profile) {
+        setLoadingAnnouncements(false);
+        return;
+      }
+
+      try {
+        // Get student data to get class_id
+        const studentData = await getStudentData(profile.id);
+        if (studentData && studentData.class_id) {
+          setStudentClassId(studentData.class_id);
+          // Fetch announcements for this class
+          const announcementsData = await getStudentAnnouncements(studentData.class_id);
+          setAnnouncements(announcementsData);
+        }
+      } catch (error) {
+        console.error("Error fetching student announcements:", error);
+      } finally {
+        setLoadingAnnouncements(false);
+      }
+    };
+
+    fetchStudentAnnouncements();
+  }, [profile, profileLoading]);
 
   const quickStats = [
     { label: "Attendance", value: "87%", icon: Users, color: "text-neon-cyan", path: "/student/attendance" },
@@ -26,12 +61,6 @@ const Dashboard = () => {
     { subject: "Mathematics", time: "9:00 AM - 10:30 AM", room: "Room 301" },
     { subject: "Physics", time: "11:00 AM - 12:30 PM", room: "Lab 2" },
     { subject: "Computer Science", time: "2:00 PM - 3:30 PM", room: "Room 105" },
-  ];
-
-  const announcements = [
-    { title: "Mid-term exams schedule released", time: "2 hours ago", urgent: true },
-    { title: "Library hours extended this week", time: "5 hours ago", urgent: false },
-    { title: "Sports day registration open", time: "1 day ago", urgent: false },
   ];
 
   return (
@@ -129,20 +158,33 @@ const Dashboard = () => {
                 <Bell className="w-6 h-6 text-accent" />
                 <h2 className="text-2xl font-semibold">Announcements</h2>
               </div>
-              <div className="space-y-4">
-                {announcements.map((announcement, index) => (
-                  <div
-                    key={index}
-                    className={`p-4 rounded-lg border transition-colors ${announcement.urgent
-                      ? "bg-destructive/10 border-destructive"
-                      : "bg-muted/50 border-border hover:border-primary"
-                      }`}
-                  >
-                    <h3 className="font-semibold">{announcement.title}</h3>
-                    <p className="text-xs text-muted-foreground mt-2">{announcement.time}</p>
-                  </div>
-                ))}
-              </div>
+              {loadingAnnouncements ? (
+                <div className="flex items-center justify-center py-8">
+                  <LoadingSpinner />
+                </div>
+              ) : announcements.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p>No announcements available.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {announcements.map((announcement) => (
+                    <div
+                      key={announcement.id}
+                      className={`p-4 rounded-lg border transition-colors ${announcement.isUrgent
+                        ? "bg-destructive/10 border-destructive"
+                        : "bg-muted/50 border-border hover:border-primary"
+                        }`}
+                    >
+                      <h3 className="font-semibold">{announcement.title}</h3>
+                      <p className="text-sm text-muted-foreground mt-2">{announcement.message}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {formatDistanceToNow(new Date(announcement.createdAt), { addSuffix: true })}
+                      </p>
+                    </div>
+                  ))}
+                </div>
+              )}
             </Card>
           </motion.div>
         </div>

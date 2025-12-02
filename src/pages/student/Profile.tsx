@@ -3,26 +3,67 @@ import { User, Mail, Phone, MapPin, Award, BookOpen, Star, Calendar } from "luci
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useAuth } from "@/auth/AuthContext";
+import { getStudentData } from "@/services/academic";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { supabase } from "@/supabase/client";
 
 const StudentProfile = () => {
     const navigate = useNavigate();
-    // Mock data - in a real app this would come from context or API
-    const student = {
-        name: "Alex Johnson",
-        id: "ST-2024-001",
-        email: "alex.j@student.nuvana.edu",
-        phone: "+1 (555) 123-4567",
-        address: "123 Campus Drive, Student Dorm A",
-        grade: "12th Grade",
-        section: "A",
-        gpa: "3.8",
-        attendance: "92%"
-    };
+    const { profile, profileLoading } = useAuth();
+    const [studentData, setStudentData] = useState<any>(null);
+    const [loading, setLoading] = useState(true);
+    const [userEmail, setUserEmail] = useState<string>("");
 
     // Mock logic for feedback activation (once a year)
     // For demo purposes, we'll toggle this with a state or just set it to true
     const [isFeedbackActive] = useState(true);
+
+    useEffect(() => {
+        const fetchStudentDetails = async () => {
+            if (profileLoading) return;
+
+            if (!profile) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                // Get user email from auth
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    setUserEmail(user.email || "");
+                }
+
+                // Get student data including class_id
+                const data = await getStudentData(profile.id);
+                if (data) {
+                    setStudentData(data);
+                }
+            } catch (error) {
+                console.error("Error fetching student details:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchStudentDetails();
+    }, [profile, profileLoading]);
+
+    if (loading || profileLoading) {
+        return <LoadingSpinner />;
+    }
+
+    if (!profile || !studentData) {
+        return (
+            <div className="min-h-screen p-6 bg-background flex items-center justify-center">
+                <Card className="glass-card p-6">
+                    <p className="text-muted-foreground">Unable to load student profile.</p>
+                </Card>
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen p-6 bg-background">
@@ -49,17 +90,25 @@ const StudentProfile = () => {
                     >
                         <Card className="glass-card p-6 flex flex-col items-center text-center h-full">
                             <div className="w-32 h-32 rounded-full bg-secondary/50 flex items-center justify-center mb-4 border-2 border-primary/50 relative overflow-hidden">
-                                <User className="w-16 h-16 text-muted-foreground" />
+                                {profile.avatar_url ? (
+                                    <img src={profile.avatar_url} alt={profile.name} className="w-full h-full object-cover" />
+                                ) : (
+                                    <User className="w-16 h-16 text-muted-foreground" />
+                                )}
                             </div>
-                            <h2 className="text-2xl font-bold text-foreground">{student.name}</h2>
-                            <p className="text-muted-foreground">{student.id}</p>
+                            <h2 className="text-2xl font-bold text-foreground">{profile.name || "Student"}</h2>
+                            <p className="text-muted-foreground">{studentData.roll_number || profile.id}</p>
                             <div className="mt-4 flex flex-wrap gap-2 justify-center">
-                                <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm border border-primary/20">
-                                    {student.grade}
-                                </span>
-                                <span className="px-3 py-1 rounded-full bg-accent/10 text-accent text-sm border border-accent/20">
-                                    Section {student.section}
-                                </span>
+                                {studentData.grade_name && (
+                                    <span className="px-3 py-1 rounded-full bg-primary/10 text-primary text-sm border border-primary/20">
+                                        {studentData.grade_name}
+                                    </span>
+                                )}
+                                {studentData.class_name && (
+                                    <span className="px-3 py-1 rounded-full bg-accent/10 text-accent text-sm border border-accent/20">
+                                        {studentData.class_name}
+                                    </span>
+                                )}
                             </div>
                         </Card>
                     </motion.div>
@@ -80,23 +129,27 @@ const StudentProfile = () => {
                                     <Mail className="w-5 h-5 text-muted-foreground" />
                                     <div>
                                         <p className="text-sm text-muted-foreground">Email</p>
-                                        <p className="font-medium">{student.email}</p>
+                                        <p className="font-medium">{userEmail || "Not available"}</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-4 p-3 rounded-lg bg-secondary/30">
-                                    <Phone className="w-5 h-5 text-muted-foreground" />
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Phone</p>
-                                        <p className="font-medium">{student.phone}</p>
+                                {studentData.class_name && (
+                                    <div className="flex items-center gap-4 p-3 rounded-lg bg-secondary/30">
+                                        <BookOpen className="w-5 h-5 text-muted-foreground" />
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">Class</p>
+                                            <p className="font-medium">{studentData.class_name}</p>
+                                        </div>
                                     </div>
-                                </div>
-                                <div className="flex items-center gap-4 p-3 rounded-lg bg-secondary/30">
-                                    <MapPin className="w-5 h-5 text-muted-foreground" />
-                                    <div>
-                                        <p className="text-sm text-muted-foreground">Address</p>
-                                        <p className="font-medium">{student.address}</p>
+                                )}
+                                {studentData.grade_name && (
+                                    <div className="flex items-center gap-4 p-3 rounded-lg bg-secondary/30">
+                                        <Award className="w-5 h-5 text-muted-foreground" />
+                                        <div>
+                                            <p className="text-sm text-muted-foreground">Grade Level</p>
+                                            <p className="font-medium">{studentData.grade_name}</p>
+                                        </div>
                                     </div>
-                                </div>
+                                )}
                             </div>
                         </Card>
                     </motion.div>
@@ -115,8 +168,8 @@ const StudentProfile = () => {
                                     <Award className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Current GPA</p>
-                                    <p className="text-2xl font-bold">{student.gpa}</p>
+                                    <p className="text-sm text-muted-foreground">Student ID</p>
+                                    <p className="text-2xl font-bold">{studentData.roll_number || profile.id.slice(0, 8)}</p>
                                 </div>
                             </div>
                         </Card>
@@ -133,8 +186,10 @@ const StudentProfile = () => {
                                     <Calendar className="w-6 h-6" />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-muted-foreground">Attendance</p>
-                                    <p className="text-2xl font-bold">{student.attendance}</p>
+                                    <p className="text-sm text-muted-foreground">Member Since</p>
+                                    <p className="text-lg font-bold">
+                                        {new Date(profile.created_at).toLocaleDateString()}
+                                    </p>
                                 </div>
                             </div>
                         </Card>

@@ -713,3 +713,182 @@ export const deleteTeacherAnnouncement = async (
     throw new Error("Failed to delete announcement.");
   }
 };
+
+// Student-related interfaces and functions
+export interface StudentData {
+  id: string;
+  class_id: string;
+  class_name?: string;
+  grade_name?: string;
+  roll_number?: string;
+}
+
+export interface StudentFileItem {
+  id: string;
+  name: string;
+  class: string;
+  subject: string;
+  category: string;
+  storageUrl: string;
+  storagePath: string;
+  downloads: number;
+  uploadDate: string;
+  size?: string;
+}
+
+export interface StudentAnnouncement {
+  id: string;
+  title: string;
+  message: string;
+  isUrgent: boolean;
+  createdAt: string;
+  class_name: string;
+}
+
+// Get student data including class_id
+export const getStudentData = async (
+  studentId: string
+): Promise<StudentData | null> => {
+  const { data, error } = await supabase
+    .from("students")
+    .select(
+      `
+      id,
+      class_id,
+      roll_number,
+      classes (
+        id,
+        name,
+        grade_levels (
+          id,
+          name
+        )
+      )
+    `
+    )
+    .eq("id", studentId)
+    .single();
+
+  if (error) {
+    console.error("Error fetching student data:", error);
+    throw new Error("Failed to load student data.");
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  const classData = Array.isArray(data.classes)
+    ? data.classes[0]
+    : data.classes;
+
+  const gradeData = classData?.grade_levels
+    ? Array.isArray(classData.grade_levels)
+      ? classData.grade_levels[0]
+      : classData.grade_levels
+    : null;
+
+  return {
+    id: data.id,
+    class_id: data.class_id,
+    class_name: classData?.name,
+    grade_name: gradeData?.name,
+    roll_number: data.roll_number,
+  };
+};
+
+// Get files filtered by class_id for students
+export const getStudentFiles = async (
+  classId: string
+): Promise<StudentFileItem[]> => {
+  const { data, error } = await supabase
+    .from("files")
+    .select(
+      `
+      id,
+      file_title,
+      storage_url,
+      download_count,
+      created_at,
+      class_id,
+      file_categories ( id, name ),
+      classes ( id, name ),
+      grade_subjects (
+        subjects_master ( name )
+      )
+    `
+    )
+    .eq("class_id", classId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching student files:", error);
+    throw new Error("Failed to load files.");
+  }
+
+  if (!data) {
+    return [];
+  }
+
+  return data.map((record) => mapFileRecordToItem(record as TeacherFileRow));
+};
+
+// Get announcements filtered by class_id for students
+export const getStudentAnnouncements = async (
+  classId: string
+): Promise<StudentAnnouncement[]> => {
+  const { data, error } = await supabase
+    .from("announcement_classes")
+    .select(
+      `
+      announcement_id,
+      announcements (
+        id,
+        title,
+        message,
+        is_urgent,
+        created_at
+      ),
+      classes (
+        id,
+        name
+      )
+    `
+    )
+    .eq("class_id", classId);
+
+  if (error) {
+    console.error("Error fetching student announcements:", error);
+    throw new Error("Failed to load announcements.");
+  }
+
+  if (!data) {
+    return [];
+  }
+
+  return data
+    .map((item) => {
+      const announcement = Array.isArray(item.announcements)
+        ? item.announcements[0]
+        : item.announcements;
+      const classData = Array.isArray(item.classes)
+        ? item.classes[0]
+        : item.classes;
+
+      if (!announcement) return null;
+
+      return {
+        id: announcement.id,
+        title: announcement.title,
+        message: announcement.message,
+        isUrgent: announcement.is_urgent,
+        createdAt: announcement.created_at,
+        class_name: classData?.name ?? "Unknown Class",
+      };
+    })
+    .filter((ann): ann is StudentAnnouncement => ann !== null)
+    .sort(
+      (a, b) =>
+        new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+    );
+};
