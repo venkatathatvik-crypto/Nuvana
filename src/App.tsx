@@ -42,6 +42,7 @@ import NotFound from "./pages/NotFound";
 import { ThemeProvider } from "@/components/theme-provider";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import AuthRedirect from "./components/AuthRedirect";
+import { InstallPWA } from "@/components/InstallPWA";
 
 const queryClient = new QueryClient();
 
@@ -57,6 +58,7 @@ const App = () => (
           <Toaster />
           <Sonner />
           <ThemeToggle />
+          <InstallPWA />
 
           <BrowserRouter>
             <Routes>

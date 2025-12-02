@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useForm, useFieldArray } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import * as z from "zod";
@@ -27,6 +27,7 @@ import {
 import { toast } from "sonner";
 import { Test, Question } from "@/lib/mcq-store";
 import { motion, Reorder } from "framer-motion";
+import { getClasses, getExamTypes, getSubjects, FlattenedClass } from "@/services/academic";
 
 const questionSchema = z.object({
     id: z.string().optional(),
@@ -44,6 +45,9 @@ const formSchema = z.object({
     description: z.string().optional(),
     durationMinutes: z.coerce.number().min(1, "Duration must be at least 1 minute"),
     isPublished: z.boolean().default(false),
+    classId: z.string().min(1, "Class is required"),
+    subject: z.string().min(1, "Subject is required"),
+    examType: z.string().min(1, "Exam type is required"),
     questions: z.array(questionSchema),
 });
 
@@ -53,6 +57,10 @@ interface TestFormProps {
 }
 
 export const TestForm = ({ initialData, onSubmit }: TestFormProps) => {
+    const [classes, setClasses] = useState<FlattenedClass[]>([]);
+    const [examTypes, setExamTypes] = useState<string[]>([]);
+    const [subjects, setSubjects] = useState<string[]>([]);
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: initialData || {
@@ -60,6 +68,9 @@ export const TestForm = ({ initialData, onSubmit }: TestFormProps) => {
             description: "",
             durationMinutes: 30,
             isPublished: false,
+            classId: "",
+            subject: "",
+            examType: "",
             questions: [],
         },
     });
@@ -68,6 +79,45 @@ export const TestForm = ({ initialData, onSubmit }: TestFormProps) => {
         control: form.control,
         name: "questions",
     });
+
+    useEffect(() => {
+        const fetchInitialData = async () => {
+            try {
+                const [classesData, examTypesData] = await Promise.all([
+                    getClasses(),
+                    getExamTypes()
+                ]);
+                setClasses(classesData || []);
+                setExamTypes(examTypesData || []);
+            } catch (error) {
+                console.error("Failed to fetch initial data", error);
+                toast.error("Failed to load form data");
+            }
+        };
+        fetchInitialData();
+    }, []);
+
+    const selectedClassId = form.watch("classId");
+
+    useEffect(() => {
+        const fetchSubjectsForClass = async () => {
+            if (!selectedClassId) {
+                setSubjects([]);
+                return;
+            }
+            const selectedClass = classes.find(c => c.class_id === selectedClassId);
+            if (selectedClass) {
+                try {
+                    const subjectsData = await getSubjects(selectedClass.grade_id);
+                    setSubjects(subjectsData || []);
+                } catch (error) {
+                    console.error("Failed to fetch subjects", error);
+                    toast.error("Failed to load subjects");
+                }
+            }
+        };
+        fetchSubjectsForClass();
+    }, [selectedClassId, classes]);
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
@@ -134,6 +184,83 @@ export const TestForm = ({ initialData, onSubmit }: TestFormProps) => {
                                         </FormItem>
                                     )}
                                 />
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    <FormField
+                                        control={form.control}
+                                        name="classId"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Class</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select Class" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {classes.map((cls) => (
+                                                            <SelectItem key={cls.class_id} value={cls.class_id}>
+                                                                {cls.class_name}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="subject"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Subject</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value} disabled={!selectedClassId}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select Subject" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {subjects.map((subject) => (
+                                                            <SelectItem key={subject} value={subject}>
+                                                                {subject}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+
+                                    <FormField
+                                        control={form.control}
+                                        name="examType"
+                                        render={({ field }) => (
+                                            <FormItem>
+                                                <FormLabel>Exam Type</FormLabel>
+                                                <Select onValueChange={field.onChange} defaultValue={field.value}>
+                                                    <FormControl>
+                                                        <SelectTrigger>
+                                                            <SelectValue placeholder="Select Type" />
+                                                        </SelectTrigger>
+                                                    </FormControl>
+                                                    <SelectContent>
+                                                        {examTypes.map((type) => (
+                                                            <SelectItem key={type} value={type}>
+                                                                {type}
+                                                            </SelectItem>
+                                                        ))}
+                                                    </SelectContent>
+                                                </Select>
+                                                <FormMessage />
+                                            </FormItem>
+                                        )}
+                                    />
+                                </div>
 
                                 <FormField
                                     control={form.control}
