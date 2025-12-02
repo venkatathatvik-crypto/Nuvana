@@ -3,9 +3,34 @@ import { GraduationCap, BookOpen, Users } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useNavigate } from "react-router-dom";
+import { useEffect } from "react";
+import { getClasses, getExamTypes, getSubjects } from "@/services/academic";
 
 const Index = () => {
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      const response = await getClasses();
+      console.log("Fetched classes:", response);
+    };
+
+    const fetchExamTypes = async () => {
+      const response = await getExamTypes();
+      console.log("Fetched exam types:", response);
+    };
+
+    const fetchSubjects = async () => {
+      const response = await getSubjects(1);
+      console.log("Fetched subjects:", response);
+    };
+
+    fetchSubjects();
+
+    fetchExamTypes();
+
+    fetchClasses();
+  }, []);
 
   return (
     <div className="min-h-screen relative overflow-hidden">

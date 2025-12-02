@@ -4,51 +4,249 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { useNavigate } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState, useMemo } from "react"; // Added useMemo
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  getExamTypes,
+  getSubjects,
+  getTeacherClasses,
+} from "@/services/academic";
+import { FlattenedClass } from "@/schemas/academic";
+import LoadingSpinner from "@/components/LoadingSpinner";
+import { useAuth } from "@/auth/AuthContext";
+
+// Define StudentMark interface for clarity
+interface StudentMark {
+  id: number;
+  name: string;
+  rollNo: string;
+  marks: string;
+  maxMarks: string;
+}
 
 const TeacherMarks = () => {
   const navigate = useNavigate();
+  const { profile, profileLoading } = useAuth();
 
-  const [selectedClass, setSelectedClass] = useState("Class 10A");
-  const [selectedSubject, setSelectedSubject] = useState("Mathematics");
-  const [examType, setExamType] = useState("Mid-Term");
+  // --- STATE INITIALIZATION ---
+  const [classes, setClasses] = useState<FlattenedClass[]>([]);
+  const [subjects, setSubjects] = useState<string[]>([]);
+  const [examTypes, setExamTypes] = useState<string[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  const classes = ["Class 10A", "Class 10B", "Class 11A"];
-  const subjects = ["Mathematics", "Physics", "Chemistry", "Computer Science", "English"];
-  const examTypes = ["Unit Test 1", "Unit Test 2", "Mid-Term", "Finals", "Internal Assessment"];
+  // State for selected objects
+  const [selectedClass, setSelectedClass] = useState<
+    FlattenedClass | undefined
+  >(undefined); // Allow undefined/null initially
+  const [selectedSubject, setSelectedSubject] = useState("");
+  const [examType, setExamType] = useState("");
 
-  const [students, setStudents] = useState([
+  // Dummy student data
+  const [students, setStudents] = useState<StudentMark[]>([
     { id: 1, name: "John Smith", rollNo: "101", marks: "85", maxMarks: "100" },
-    { id: 2, name: "Emma Johnson", rollNo: "102", marks: "92", maxMarks: "100" },
-    { id: 3, name: "Michael Brown", rollNo: "103", marks: "78", maxMarks: "100" },
-    { id: 4, name: "Sophia Davis", rollNo: "104", marks: "88", maxMarks: "100" },
-    { id: 5, name: "William Wilson", rollNo: "105", marks: "95", maxMarks: "100" },
-    { id: 6, name: "Olivia Martinez", rollNo: "106", marks: "82", maxMarks: "100" },
-    { id: 7, name: "James Anderson", rollNo: "107", marks: "90", maxMarks: "100" },
-    { id: 8, name: "Isabella Taylor", rollNo: "108", marks: "87", maxMarks: "100" },
-    { id: 9, name: "Benjamin Thomas", rollNo: "109", marks: "93", maxMarks: "100" },
+    {
+      id: 2,
+      name: "Emma Johnson",
+      rollNo: "102",
+      marks: "92",
+      maxMarks: "100",
+    },
+    {
+      id: 3,
+      name: "Michael Brown",
+      rollNo: "103",
+      marks: "78",
+      maxMarks: "100",
+    },
+    {
+      id: 4,
+      name: "Sophia Davis",
+      rollNo: "104",
+      marks: "88",
+      maxMarks: "100",
+    },
+    {
+      id: 5,
+      name: "William Wilson",
+      rollNo: "105",
+      marks: "95",
+      maxMarks: "100",
+    },
+    {
+      id: 6,
+      name: "Olivia Martinez",
+      rollNo: "106",
+      marks: "82",
+      maxMarks: "100",
+    },
+    {
+      id: 7,
+      name: "James Anderson",
+      rollNo: "107",
+      marks: "90",
+      maxMarks: "100",
+    },
+    {
+      id: 8,
+      name: "Isabella Taylor",
+      rollNo: "108",
+      marks: "87",
+      maxMarks: "100",
+    },
+    {
+      id: 9,
+      name: "Benjamin Thomas",
+      rollNo: "109",
+      marks: "93",
+      maxMarks: "100",
+    },
     { id: 10, name: "Mia Garcia", rollNo: "110", marks: "79", maxMarks: "100" },
   ]);
 
+  // --- EFFECT 1: INITIAL DATA LOAD (Classes & Exam Types) ---
+  useEffect(() => {
+    const fetchInitialData = async () => {
+      if (profileLoading) return;
+
+      if (!profile) {
+        setClasses([]);
+        setSelectedClass(undefined);
+        setExamTypes([]);
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const [classResponse, examResponse] = await Promise.all([
+          getTeacherClasses(profile.id),
+          getExamTypes(),
+        ]);
+
+        if (classResponse) {
+          setClasses(classResponse);
+
+          if (classResponse.length > 0) {
+            setSelectedClass(classResponse[0]); // Set the default class object
+          } else {
+            setSelectedClass(undefined);
+          }
+        }
+
+        if (examResponse) {
+          setExamTypes(examResponse);
+          // FIX 1: Set default exam type from fetched data
+          if (examResponse.length > 0) {
+            setExamType(examResponse[0]);
+          } else {
+            setExamType("");
+          }
+        }
+      } catch (error) {
+        toast.error("Failed to load core academic data.");
+        console.error("Error fetching initial data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchInitialData();
+  }, [profile, profileLoading]);
+
+  // --- EFFECT 2: DYNAMIC SUBJECT LOAD (DEPENDS ON selectedClass) ---
+  useEffect(() => {
+    if (selectedClass) {
+      const fetchSubjectsByGrade = async () => {
+        const gradeId = selectedClass.grade_id;
+
+        try {
+          const subjectResponse = await getSubjects(gradeId);
+          if (subjectResponse) {
+            setSubjects(subjectResponse);
+            // FIX 2: Set the default subject based on the new class's curriculum
+            if (subjectResponse.length > 0) {
+              setSelectedSubject(subjectResponse[0]);
+            } else {
+              setSelectedSubject(""); // Clear if no subjects found
+            }
+          }
+        } catch (error) {
+          console.error(
+            `Error fetching subjects for Grade ID ${gradeId}:`,
+            error
+          );
+          setSubjects([]);
+          setSelectedSubject("");
+        }
+      };
+
+      fetchSubjectsByGrade();
+    }
+  }, [selectedClass]); // Reruns whenever selectedClass object changes
+
+  // --- HANDLERS ---
+
+  const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const classId = e.target.value;
+    const cls = classes.find((c) => c.class_id === classId);
+
+    // This setter triggers useEffect 2, which loads the new subjects
+    if (cls) setSelectedClass(cls);
+  };
+
   const updateMarks = (studentId: number, marks: string) => {
-    setStudents(students.map(student =>
-      student.id === studentId ? { ...student, marks } : student
-    ));
+    setStudents(
+      students.map((student) =>
+        student.id === studentId ? { ...student, marks } : student
+      )
+    );
   };
 
   const submitMarks = () => {
-    toast.success(`Marks submitted for ${selectedSubject} - ${examType}`);
+    if (!selectedClass || !selectedSubject || !examType) {
+      toast.error(
+        "Please select a valid Class, Subject, and Exam Type before publishing."
+      );
+      return;
+    }
+    toast.success(
+      `Marks published for ${selectedClass.class_name}, Subject: ${selectedSubject} (${examType})`
+    );
   };
 
-  const classAverage = (students.reduce((acc, s) => acc + parseFloat(s.marks || "0"), 0) / students.length).toFixed(1);
+  const classAverage = useMemo(() => {
+    if (students.length === 0) return "0.0";
+    return (
+      students.reduce((acc, s) => acc + parseFloat(s.marks || "0"), 0) /
+      students.length
+    ).toFixed(1);
+  }, [students]);
 
+  // --- LOADING AND GUARD CLAUSES ---
+  if (loading) {
+    return <LoadingSpinner />;
+  }
+
+  // Check if classes were loaded but no class was selected (should only happen if classes are empty)
+  if (!selectedClass) {
+    return (
+      <div className="min-h-screen p-6 flex items-center justify-center text-xl font-semibold text-destructive">
+        No classes available or assigned.
+      </div>
+    );
+  }
+
+  // --- JSX RENDERING ---
   return (
     <div className="min-h-screen p-6 bg-background">
       <div className="max-w-7xl mx-auto space-y-8">
+        {/* Header/Navigation */}
         <div className="flex items-center gap-4">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/teacher")}>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/teacher")}
+          >
             <ArrowLeft className="w-6 h-6" />
           </Button>
           <motion.div
@@ -56,11 +254,14 @@ const TeacherMarks = () => {
             animate={{ opacity: 1, x: 0 }}
           >
             <h1 className="text-4xl font-bold neon-text">Upload Marks</h1>
-            <p className="text-muted-foreground">Enter and publish student marks</p>
+            <p className="text-muted-foreground">
+              Enter and publish student marks
+            </p>
           </motion.div>
         </div>
 
         <Tabs defaultValue="manual" className="w-full">
+          {/* Tabs List (Manual/Bulk) */}
           <TabsList className="grid w-full grid-cols-2">
             <TabsTrigger value="manual">Manual Entry</TabsTrigger>
             <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
@@ -74,45 +275,70 @@ const TeacherMarks = () => {
             >
               <Card className="glass-card p-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                  {/* Class Dropdown */}
                   <div>
-                    <label className="text-sm text-muted-foreground mb-2 block">Class</label>
+                    <label className="text-sm text-muted-foreground mb-2 block">
+                      Class
+                    </label>
                     <select
                       className="w-full p-3 rounded-lg bg-muted border border-border"
-                      value={selectedClass}
-                      onChange={(e) => setSelectedClass(e.target.value)}
+                      value={selectedClass.class_id} // Uses the selected Class object's ID
+                      onChange={handleClassChange} // Uses the helper handler
                     >
-                      {classes.map(cls => (
-                        <option key={cls} value={cls}>{cls}</option>
+                      {classes.map((cls) => (
+                        <option key={cls.class_id} value={cls.class_id}>
+                          {cls.class_name}
+                        </option>
                       ))}
                     </select>
                   </div>
+                  {/* Subject Dropdown */}
                   <div>
-                    <label className="text-sm text-muted-foreground mb-2 block">Subject</label>
+                    <label className="text-sm text-muted-foreground mb-2 block">
+                      Subject
+                    </label>
                     <select
                       className="w-full p-3 rounded-lg bg-muted border border-border"
                       value={selectedSubject}
                       onChange={(e) => setSelectedSubject(e.target.value)}
+                      disabled={subjects.length === 0}
                     >
-                      {subjects.map(sub => (
-                        <option key={sub} value={sub}>{sub}</option>
+                      {subjects.map((sub) => (
+                        <option key={sub} value={sub}>
+                          {sub}
+                        </option>
                       ))}
+                      {subjects.length === 0 && (
+                        <option disabled>No subjects</option>
+                      )}
                     </select>
                   </div>
+                  {/* Exam Type Dropdown */}
                   <div>
-                    <label className="text-sm text-muted-foreground mb-2 block">Exam Type</label>
+                    <label className="text-sm text-muted-foreground mb-2 block">
+                      Exam Type
+                    </label>
                     <select
                       className="w-full p-3 rounded-lg bg-muted border border-border"
                       value={examType}
                       onChange={(e) => setExamType(e.target.value)}
                     >
-                      {examTypes.map(type => (
-                        <option key={type} value={type}>{type}</option>
+                      {examTypes.map((type) => (
+                        // Assuming examTypes returns simple strings
+                        <option key={type} value={type}>
+                          {type}
+                        </option>
                       ))}
                     </select>
                   </div>
+                  {/* Class Average */}
                   <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">Class Average</p>
-                    <p className="text-4xl font-bold text-primary">{classAverage}%</p>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Class Average
+                    </p>
+                    <p className="text-4xl font-bold text-primary">
+                      {classAverage}%
+                    </p>
                   </div>
                 </div>
               </Card>
@@ -126,7 +352,7 @@ const TeacherMarks = () => {
               <Card className="glass-card p-6">
                 <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
                   <Award className="w-6 h-6 text-primary" />
-                  Enter Marks - {selectedClass}
+                  Enter Marks - {selectedClass.class_name}
                 </h2>
 
                 <div className="space-y-3">
@@ -145,7 +371,9 @@ const TeacherMarks = () => {
                           </div>
                           <div className="flex-1">
                             <h3 className="font-semibold">{student.name}</h3>
-                            <p className="text-sm text-muted-foreground">Roll No: {student.rollNo}</p>
+                            <p className="text-sm text-muted-foreground">
+                              Roll No: {student.rollNo}
+                            </p>
                           </div>
                         </div>
                         <div className="flex items-center gap-4">
@@ -153,15 +381,24 @@ const TeacherMarks = () => {
                             <Input
                               type="number"
                               value={student.marks}
-                              onChange={(e) => updateMarks(student.id, e.target.value)}
+                              onChange={(e) =>
+                                updateMarks(student.id, e.target.value)
+                              }
                               className="w-24 text-center text-lg font-bold"
                               placeholder="0"
                             />
-                            <span className="text-muted-foreground">/ {student.maxMarks}</span>
+                            <span className="text-muted-foreground">
+                              / {student.maxMarks}
+                            </span>
                           </div>
                           <div className="text-right min-w-[60px]">
                             <p className="text-xl font-bold text-primary">
-                              {((parseFloat(student.marks || "0") / parseFloat(student.maxMarks)) * 100).toFixed(0)}%
+                              {(
+                                (parseFloat(student.marks || "0") /
+                                  parseFloat(student.maxMarks)) *
+                                100
+                              ).toFixed(0)}
+                              %
                             </p>
                           </div>
                         </div>
@@ -177,12 +414,17 @@ const TeacherMarks = () => {
                 <Save className="w-4 h-4 mr-2" />
                 Save Draft
               </Button>
-              <Button size="lg" className="neon-glow px-8" onClick={submitMarks}>
+              <Button
+                size="lg"
+                className="neon-glow px-8"
+                onClick={submitMarks}
+              >
                 Publish Marks
               </Button>
             </div>
           </TabsContent>
 
+          {/* Bulk Upload Content (Unchanged) */}
           <TabsContent value="bulk" className="space-y-6 mt-6">
             <motion.div
               initial={{ opacity: 0, y: 20 }}
@@ -209,7 +451,9 @@ const TeacherMarks = () => {
             <Card className="glass-card p-6 bg-primary/5 border-primary/30">
               <h3 className="font-semibold mb-2">📝 CSV Format Instructions</h3>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>• First row should contain headers: Roll No, Name, Marks</li>
+                <li>
+                  • First row should contain headers: Roll No, Name, Marks
+                </li>
                 <li>• Each row represents one student</li>
                 <li>• Marks should be numeric values</li>
                 <li>• Save the file in CSV format before uploading</li>
