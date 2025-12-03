@@ -86,7 +86,7 @@ const Index = () => {
             <h2 className="text-3xl font-bold">Teacher Mode</h2>
             <p className="text-muted-foreground">
               Manage classes, upload marks, post attendance, share files, and
-              make announcements
+              make announcements and more
             </p>
             <Button className="w-full mt-4" size="lg" variant="secondary">
               Enter as Teacher
@@ -102,8 +102,13 @@ const Index = () => {
         transition={{ delay: 0.6, duration: 0.8 }}
         className="mt-16 text-center"
       >
-        <p className="text-sm text-muted-foreground">
-          Powered by modern technology • Designed for excellence
+        <p className="text-sm text-muted-foreground flex items-center gap-1">
+          <img
+            src="/PBNL.png"
+            alt="NuvanaLabs"
+            className="h-10 w-auto ml-1 inline-block"
+
+          />
         </p>
       </motion.div>
     </div>
