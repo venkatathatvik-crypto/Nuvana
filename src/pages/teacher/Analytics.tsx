@@ -1,3 +1,6 @@
+// Full updated AnalyticsDashboard.tsx with Topic/Chapter-wise performance added
+// ---------- START OF FILE ----------
+
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import {
@@ -23,7 +26,7 @@ import {
     Radar,
     ScatterChart,
     Scatter,
-    ZAxis
+    ZAxis,
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -34,7 +37,7 @@ import { useAuth } from "@/auth/AuthContext";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { toast } from "sonner";
 
-// Mock Data
+// ---------------- MOCK DATA ----------------
 const performanceTrendData = [
     { month: "Jan", avgScore: 65, attendance: 85 },
     { month: "Feb", avgScore: 68, attendance: 82 },
@@ -57,27 +60,28 @@ const attendanceVsMarksData = [
     { attendance: 98, marks: 98, student: "S10" },
 ];
 
-const subjectPerformanceData = [
-    { subject: "Math", A: 120, B: 110, fullMark: 150 },
-    { subject: "Physics", A: 98, B: 130, fullMark: 150 },
-    { subject: "Chemistry", A: 86, B: 130, fullMark: 150 },
-    { subject: "Biology", A: 99, B: 100, fullMark: 150 },
-    { subject: "English", A: 85, B: 90, fullMark: 150 },
-    { subject: "History", A: 65, B: 85, fullMark: 150 },
+const subjectAverageData = [
+    { subject: "Math", avg: 78 },
+    { subject: "Physics", avg: 82 },
+    { subject: "Chemistry", avg: 75 },
+    { subject: "Biology", avg: 85 },
+    { subject: "English", avg: 88 },
+    { subject: "History", avg: 72 },
 ];
 
-const questionAnalysisData = [
-    { question: "Q1", correct: 85, incorrect: 15 },
-    { question: "Q2", correct: 60, incorrect: 40 },
-    { question: "Q3", correct: 45, incorrect: 55 },
-    { question: "Q4", correct: 90, incorrect: 10 },
-    { question: "Q5", correct: 30, incorrect: 70 },
+const recentTestsData = [
+    { test: "Unit Test 1", avg: 75, top: 95 },
+    { test: "Unit Test 2", avg: 78, top: 98 },
+    { test: "Mid Term", avg: 72, top: 92 },
+    { test: "Unit Test 3", avg: 82, top: 96 },
+    { test: "Final Mock", avg: 85, top: 99 },
 ];
 
-const difficultyData = [
-    { name: "Easy", value: 30 },
-    { name: "Medium", value: 50 },
-    { name: "Hard", value: 20 },
+const questionTypeData = [
+    { name: "MCQ", value: 40 },
+    { name: "Short Answer", value: 30 },
+    { name: "Long Answer", value: 20 },
+    { name: "Problem Solving", value: 10 },
 ];
 
 const studentsList = [
@@ -87,7 +91,7 @@ const studentsList = [
 ];
 
 const studentAnalyticsData: Record<string, any> = {
-    "S1": {
+    S1: {
         radar: [
             { subject: "Math", A: 140, B: 110, fullMark: 150 },
             { subject: "Physics", A: 130, B: 130, fullMark: 150 },
@@ -98,13 +102,13 @@ const studentAnalyticsData: Record<string, any> = {
         ],
         strengths: [
             { subject: "Mathematics", desc: "Consistently scores above 90%" },
-            { subject: "Physics", desc: "Strong conceptual understanding" }
+            { subject: "Physics", desc: "Strong conceptual understanding" },
         ],
         weaknesses: [
-            { subject: "History", desc: "Struggles with dates and events" }
-        ]
+            { subject: "History", desc: "Struggles with dates and events" },
+        ],
     },
-    "S2": {
+    S2: {
         radar: [
             { subject: "Math", A: 90, B: 110, fullMark: 150 },
             { subject: "Physics", A: 85, B: 130, fullMark: 150 },
@@ -115,13 +119,13 @@ const studentAnalyticsData: Record<string, any> = {
         ],
         strengths: [
             { subject: "Biology", desc: "Excellent diagrammatic skills" },
-            { subject: "English", desc: "Strong vocabulary and grammar" }
+            { subject: "English", desc: "Strong vocabulary and grammar" },
         ],
         weaknesses: [
-            { subject: "Physics", desc: "Needs improvement in numericals" }
-        ]
+            { subject: "Physics", desc: "Needs improvement in numericals" },
+        ],
     },
-    "S3": {
+    S3: {
         radar: [
             { subject: "Math", A: 110, B: 110, fullMark: 150 },
             { subject: "Physics", A: 100, B: 130, fullMark: 150 },
@@ -132,55 +136,181 @@ const studentAnalyticsData: Record<string, any> = {
         ],
         strengths: [
             { subject: "History", desc: "Great retention of facts" },
-            { subject: "Math", desc: "Good at algebra" }
+            { subject: "Math", desc: "Good at algebra" },
         ],
         weaknesses: [
-            { subject: "Biology", desc: "Struggles with terminology" }
-        ]
-    }
+            { subject: "Biology", desc: "Struggles with terminology" },
+        ],
+    },
 };
 
-const COLORS = ["#0088FE", "#00C49F", "#FFBB28", "#FF8042"];
+// ---------------- NEW TOPIC/CHAPTER DATA ----------------
+const topicChapterData: Record<string, any> = {
+    S1: {
+        Math: {
+            topics: [
+                {
+                    topic: "Algebra",
+                    avg: 85,
+                    chapters: [
+                        { chapter: "Linear Equations", score: 88 },
+                        { chapter: "Quadratic Equations", score: 80 },
+                        { chapter: "Polynomials", score: 90 },
+                    ],
+                },
+                {
+                    topic: "Geometry",
+                    avg: 78,
+                    chapters: [
+                        { chapter: "Triangles", score: 74 },
+                        { chapter: "Circles", score: 81 },
+                        { chapter: "Coordinate Geometry", score: 79 },
+                    ],
+                },
+            ],
+        },
+        Physics: {
+            topics: [
+                {
+                    topic: "Mechanics",
+                    avg: 92,
+                    chapters: [
+                        { chapter: "Motion", score: 90 },
+                        { chapter: "Forces", score: 94 },
+                        { chapter: "Work & Energy", score: 92 },
+                    ],
+                },
+                {
+                    topic: "Thermodynamics",
+                    avg: 85,
+                    chapters: [
+                        { chapter: "Heat", score: 82 },
+                        { chapter: "Laws of Thermo", score: 88 },
+                    ],
+                },
+            ],
+        },
+        Chemistry: {
+            topics: [
+                {
+                    topic: "Organic",
+                    avg: 75,
+                    chapters: [
+                        { chapter: "Hydrocarbons", score: 72 },
+                        { chapter: "Alcohols", score: 78 },
+                    ],
+                },
+                {
+                    topic: "Inorganic",
+                    avg: 82,
+                    chapters: [
+                        { chapter: "Periodic Table", score: 85 },
+                        { chapter: "Bonding", score: 80 },
+                    ],
+                },
+            ],
+        },
+        Biology: {
+            topics: [
+                {
+                    topic: "Human Physiology",
+                    avg: 88,
+                    chapters: [
+                        { chapter: "Digestion", score: 90 },
+                        { chapter: "Respiration", score: 86 },
+                    ],
+                },
+            ],
+        },
+        English: {
+            topics: [
+                {
+                    topic: "Grammar",
+                    avg: 70,
+                    chapters: [
+                        { chapter: "Tenses", score: 65 },
+                        { chapter: "Active/Passive", score: 75 },
+                    ],
+                },
+            ],
+        },
+        History: {
+            topics: [
+                {
+                    topic: "World War",
+                    avg: 65,
+                    chapters: [
+                        { chapter: "WW1", score: 60 },
+                        { chapter: "WW2", score: 70 },
+                    ],
+                },
+            ],
+        },
+    },
+    S2: {
+        Math: {
+            topics: [
+                {
+                    topic: "Calculus",
+                    avg: 60,
+                    chapters: [
+                        { chapter: "Limits", score: 55 },
+                        { chapter: "Derivatives", score: 65 },
+                    ],
+                },
+            ],
+        },
+        // Add other subjects as needed...
+    },
+    S3: {
+        Math: {
+            topics: [
+                {
+                    topic: "Statistics",
+                    avg: 95,
+                    chapters: [
+                        { chapter: "Mean/Median", score: 98 },
+                        { chapter: "Probability", score: 92 },
+                    ],
+                },
+            ],
+        },
+    },
+};
+
 const NEON_COLORS = {
     primary: "#8884d8",
     secondary: "#82ca9d",
     accent: "#ffc658",
-    danger: "#ff7373"
+    danger: "#ff7373",
 };
 
+// ---------------- MAIN COMPONENT ----------------
 const AnalyticsDashboard = () => {
     const { profile, profileLoading } = useAuth();
     const [classes, setClasses] = useState<FlattenedClass[]>([]);
-    const [selectedClass, setSelectedClass] = useState<FlattenedClass | undefined>(undefined);
+    const [selectedClass, setSelectedClass] = useState<FlattenedClass | undefined>();
     const [selectedStudent, setSelectedStudent] = useState("S1");
     const [loading, setLoading] = useState(true);
 
-    // Load classes dynamically for the logged-in teacher
+    // new state for topic/chapter analytics
+    const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
+
     useEffect(() => {
         const fetchClasses = async () => {
             if (profileLoading) return;
-
             if (!profile) {
                 setClasses([]);
                 setSelectedClass(undefined);
                 setLoading(false);
                 return;
             }
-
             try {
-                const classResponse = await getTeacherClasses(profile.id);
-                if (classResponse && classResponse.length > 0) {
-                    setClasses(classResponse);
-                    setSelectedClass(classResponse[0]); // Set the default class object
-                } else {
-                    setClasses([]);
-                    setSelectedClass(undefined);
-                }
-            } catch (error) {
-                console.error("Error fetching classes for analytics:", error);
-                toast.error("Failed to load classes for analytics.");
-                setClasses([]);
-                setSelectedClass(undefined);
+                const res = await getTeacherClasses(profile.id);
+                setClasses(res || []);
+                setSelectedClass(res?.[0]);
+            } catch {
+                toast.error("Failed to load classes");
             } finally {
                 setLoading(false);
             }
@@ -189,325 +319,295 @@ const AnalyticsDashboard = () => {
         fetchClasses();
     }, [profile, profileLoading]);
 
-    const handleClassChange = (classId: string) => {
-        const cls = classes.find((c) => c.class_id === classId);
-        if (cls) {
-            setSelectedClass(cls);
-        }
-    };
-
-    if (loading) {
-        return <LoadingSpinner />;
-    }
-
-    if (!selectedClass) {
-        return (
-            <div className="min-h-screen p-6 flex items-center justify-center text-xl font-semibold text-destructive">
-                No classes available or assigned.
-            </div>
-        );
-    }
+    if (loading) return <LoadingSpinner />;
+    if (!selectedClass)
+        return <div className="min-h-screen p-6 flex items-center justify-center text-xl font-semibold text-destructive">No classes found</div>;
 
     return (
-        <div className="min-h-screen p-6 bg-background space-y-8">
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-between items-center"
-            >
+        <div className="min-h-screen p-6 space-y-8 bg-background">
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-between items-center">
                 <div>
-                    <h1 className="text-4xl font-bold neon-text mb-2">Analytics Dashboard 📊</h1>
+                    <h1 className="text-4xl font-bold mb-2">Analytics Dashboard 📊</h1>
                     <p className="text-muted-foreground">Deep insights into student performance</p>
                 </div>
-                <Select value={selectedClass?.class_id} onValueChange={handleClassChange}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select Class" />
-                    </SelectTrigger>
+
+                <Select value={selectedClass?.class_id} onValueChange={(id) => setSelectedClass(classes.find((c) => c.class_id === id))}>
+                    <SelectTrigger className="w-48"><SelectValue /></SelectTrigger>
                     <SelectContent>
                         {classes.map((cls) => (
-                            <SelectItem key={cls.class_id} value={cls.class_id}>
-                                {cls.class_name}
-                            </SelectItem>
+                            <SelectItem key={cls.class_id} value={cls.class_id}>{cls.class_name}</SelectItem>
                         ))}
                     </SelectContent>
                 </Select>
             </motion.div>
 
+            <Tabs defaultValue="class" className="space-y-6">
+                <TabsList className="grid grid-cols-3 w-full max-w-lg">
+                    <TabsTrigger value="class">Class Insights</TabsTrigger>
+                    <TabsTrigger value="student">Student Analysis</TabsTrigger>
+                    <TabsTrigger value="test">Test Metrics</TabsTrigger>
+                </TabsList>
 
-            <div className="relative z-10 space-y-8">
-                <Tabs defaultValue="class" className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
-                        <TabsTrigger value="class">Class Insights</TabsTrigger>
-                        <TabsTrigger value="student">Student Analysis</TabsTrigger>
-                        <TabsTrigger value="test">Test Metrics</TabsTrigger>
-                    </TabsList>
+                {/* ---------------- CLASS LEVEL INSIGHTS ---------------- */}
+                <TabsContent value="class" className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* PERFORMANCE TREND */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Class Performance Trend</CardTitle>
+                                <CardDescription>Average scores over the last 6 months</CardDescription>
+                            </CardHeader>
+                            <CardContent className="h-[300px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <LineChart data={performanceTrendData}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="month" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Legend />
+                                        <Line type="monotone" dataKey="avgScore" stroke="#8884d8" strokeWidth={2} />
+                                        <Line type="monotone" dataKey="attendance" stroke="#82ca9d" strokeWidth={2} />
+                                    </LineChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
 
-                    {/* Class Level Analytics */}
-                    <TabsContent value="class" className="space-y-6">
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                            <Card className="glass-card">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Class Average</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-neon-purple">78.5%</div>
-                                    <p className="text-xs text-green-500 flex items-center mt-1">
-                                        <TrendingUp className="w-3 h-3 mr-1" /> +2.5% from last month
-                                    </p>
-                                </CardContent>
-                            </Card>
-                            <Card className="glass-card">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Attendance Rate</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-neon-cyan">92%</div>
-                                    <p className="text-xs text-muted-foreground mt-1">Consistent</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="glass-card">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Top Performer</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-neon-pink">Alice S.</div>
-                                    <p className="text-xs text-muted-foreground mt-1">98.5% Avg Score</p>
-                                </CardContent>
-                            </Card>
-                            <Card className="glass-card">
-                                <CardHeader className="pb-2">
-                                    <CardTitle className="text-sm font-medium text-muted-foreground">Needs Attention</CardTitle>
-                                </CardHeader>
-                                <CardContent>
-                                    <div className="text-2xl font-bold text-red-500">3 Students</div>
-                                    <p className="text-xs text-muted-foreground mt-1">Below 60% Avg</p>
-                                </CardContent>
-                            </Card>
-                        </div>
+                        {/* SUBJECT AVERAGES */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Subject Averages</CardTitle>
+                                <CardDescription>Overall class performance by subject</CardDescription>
+                            </CardHeader>
+                            <CardContent className="h-[300px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={subjectAverageData} layout="vertical">
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis type="number" domain={[0, 100]} />
+                                        <YAxis dataKey="subject" type="category" width={80} />
+                                        <Tooltip />
+                                        <Bar dataKey="avg" fill="#8884d8" radius={[0, 4, 4, 0]}>
+                                            {subjectAverageData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={index % 2 === 0 ? "#8884d8" : "#82ca9d"} />
+                                            ))}
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: 0.1 }}
-                            >
-                                <Card className="glass-card h-[400px]">
-                                    <CardHeader>
-                                        <CardTitle>Performance Trends</CardTitle>
-                                        <CardDescription>Average score vs Attendance over time</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="h-[320px]">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <AreaChart data={performanceTrendData}>
-                                                <defs>
-                                                    <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor={NEON_COLORS.primary} stopOpacity={0.8} />
-                                                        <stop offset="95%" stopColor={NEON_COLORS.primary} stopOpacity={0} />
-                                                    </linearGradient>
-                                                    <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
-                                                        <stop offset="5%" stopColor={NEON_COLORS.secondary} stopOpacity={0.8} />
-                                                        <stop offset="95%" stopColor={NEON_COLORS.secondary} stopOpacity={0} />
-                                                    </linearGradient>
-                                                </defs>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                                                <XAxis dataKey="month" stroke="#888" />
-                                                <YAxis stroke="#888" />
-                                                <Tooltip
-                                                    contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
-                                                    itemStyle={{ color: '#fff' }}
-                                                />
-                                                <Legend />
-                                                <Area type="monotone" dataKey="avgScore" stroke={NEON_COLORS.primary} fillOpacity={1} fill="url(#colorScore)" name="Avg Score" />
-                                                <Area type="monotone" dataKey="attendance" stroke={NEON_COLORS.secondary} fillOpacity={1} fill="url(#colorAtt)" name="Attendance" />
-                                            </AreaChart>
-                                        </ResponsiveContainer>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
+                        {/* ATTENDANCE VS MARKS */}
+                        <Card className="lg:col-span-2">
+                            <CardHeader>
+                                <CardTitle>Attendance vs. Marks Correlation</CardTitle>
+                                <CardDescription>Does attendance impact performance?</CardDescription>
+                            </CardHeader>
+                            <CardContent className="h-[300px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <ScatterChart>
+                                        <CartesianGrid />
+                                        <XAxis type="number" dataKey="attendance" name="Attendance" unit="%" />
+                                        <YAxis type="number" dataKey="marks" name="Marks" unit="%" />
+                                        <Tooltip cursor={{ strokeDasharray: '3 3' }} />
+                                        <Scatter name="Students" data={attendanceVsMarksData} fill="#8884d8" />
+                                    </ScatterChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
 
-                            <motion.div
-                                initial={{ opacity: 0, scale: 0.95 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: 0.2 }}
-                            >
-                                <Card className="glass-card h-[400px]">
-                                    <CardHeader>
-                                        <CardTitle>Attendance vs Marks Correlation</CardTitle>
-                                        <CardDescription>Does attendance impact performance?</CardDescription>
-                                    </CardHeader>
-                                    <CardContent className="h-[320px]">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <ScatterChart>
-                                                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                                                <XAxis type="number" dataKey="attendance" name="Attendance" unit="%" stroke="#888" domain={[50, 100]} />
-                                                <YAxis type="number" dataKey="marks" name="Marks" unit="%" stroke="#888" domain={[0, 100]} />
-                                                <ZAxis type="category" dataKey="student" name="Student" />
-                                                <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
-                                                <Scatter name="Students" data={attendanceVsMarksData} fill={NEON_COLORS.accent} />
-                                            </ScatterChart>
-                                        </ResponsiveContainer>
-                                    </CardContent>
-                                </Card>
-                            </motion.div>
-                        </div>
-                    </TabsContent>
+                {/* ---------------- STUDENT LEVEL ANALYSIS ---------------- */}
+                <TabsContent value="student" className="space-y-8">
+                    <div className="flex items-center gap-4 bg-secondary/10 p-4 rounded-lg border border-white/5">
+                        <Users className="w-5 h-5 text-blue-500" />
+                        <label className="text-sm font-medium">Select Student</label>
 
-                    {/* Student Level Analytics */}
-                    <TabsContent value="student" className="space-y-6">
-                        <div className="flex items-center gap-4 bg-secondary/10 p-4 rounded-lg border border-white/5">
-                            <Users className="w-5 h-5 text-blue-500" />
-                            <label className="text-sm font-medium">Select Student for Analysis:</label>
-                            <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                                <SelectTrigger className="w-[250px] glass">
-                                    <SelectValue placeholder="Select Student" />
-                                </SelectTrigger>
+                        <Select value={selectedStudent} onValueChange={(v) => { setSelectedStudent(v); setSelectedSubject(null); }}>
+                            <SelectTrigger className="w-64"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                {studentsList.map((s) => (
+                                    <SelectItem key={s.id} value={s.id}>{s.name}</SelectItem>
+                                ))}
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* SUBJECT RADAR */}
+                        <Card className="col-span-2 h-[450px]">
+                            <CardHeader>
+                                <CardTitle>Subject-wise Performance</CardTitle>
+                                <CardDescription>{studentsList.find(s => s.id === selectedStudent)?.name}</CardDescription>
+                            </CardHeader>
+                            <CardContent className="h-[370px]">
+                                <ResponsiveContainer>
+                                    <RadarChart data={studentAnalyticsData[selectedStudent].radar}>
+                                        <PolarGrid />
+                                        <PolarAngleAxis dataKey="subject" />
+                                        <PolarRadiusAxis />
+                                        <Radar dataKey="B" stroke="#82ca9d" fill="#82ca9d" fillOpacity={0.3} name="Class Avg" />
+                                        <Radar dataKey="A" stroke="#8884d8" fill="#8884d8" fillOpacity={0.5} name="Student" />
+                                        <Legend />
+                                    </RadarChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        {/* STRENGTH & WEAKNESS */}
+                        <Card>
+                            <CardHeader><CardTitle>Strength & Weakness</CardTitle></CardHeader>
+                            <CardContent className="space-y-6">
+                                <div>
+                                    <h4 className="text-sm font-medium mb-3 text-green-500 flex items-center"><TrendingUp className="w-4 h-4 mr-2" />Strengths</h4>
+                                    {studentAnalyticsData[selectedStudent].strengths.map((s: any, i: number) => (
+                                        <div key={i} className="p-3 bg-green-500/10 rounded-lg border border-green-500/20">
+                                            <p className="font-medium">{s.subject}</p>
+                                            <p className="text-xs text-muted-foreground">{s.desc}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                                <div>
+                                    <h4 className="text-sm font-medium mb-3 text-red-500 flex items-center"><AlertCircle className="w-4 h-4 mr-2" />Weaknesses</h4>
+                                    {studentAnalyticsData[selectedStudent].weaknesses.map((s: any, i: number) => (
+                                        <div key={i} className="p-3 bg-red-500/10 rounded-lg border border-red-500/20">
+                                            <p className="font-medium">{s.subject}</p>
+                                            <p className="text-xs text-muted-foreground">{s.desc}</p>
+                                        </div>
+                                    ))}
+                                </div>
+                            </CardContent>
+                        </Card>
+                    </div>
+
+                    {/* ---------------- TOPIC / CHAPTER PERFORMANCE WITH STRENGTH & WEAKNESS ---------------- */}
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Topic / Chapter-wise Performance</CardTitle>
+                            <CardDescription>Drill down into topics & chapters</CardDescription>
+                        </CardHeader>
+
+                        <CardContent className="space-y-6">
+                            {/* SUBJECT SELECTOR */}
+                            <Select value={selectedSubject || undefined} onValueChange={setSelectedSubject}>
+                                <SelectTrigger className="w-64"><SelectValue placeholder="Select Subject" /></SelectTrigger>
                                 <SelectContent>
-                                    {studentsList.map(student => (
-                                        <SelectItem key={student.id} value={student.id}>{student.name}</SelectItem>
+                                    {studentAnalyticsData[selectedStudent].radar.map((s: any) => (
+                                        <SelectItem key={s.subject} value={s.subject}>{s.subject}</SelectItem>
                                     ))}
                                 </SelectContent>
                             </Select>
-                        </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                            <Card className="glass-card col-span-1 lg:col-span-2 h-[450px]">
-                                <CardHeader>
-                                    <CardTitle>Subject-wise Performance</CardTitle>
-                                    <CardDescription>Comparative analysis for {studentsList.find(s => s.id === selectedStudent)?.name}</CardDescription>
-                                </CardHeader>
-                                <CardContent className="h-[370px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={studentAnalyticsData[selectedStudent].radar}>
-                                            <PolarGrid stroke="#444" />
-                                            <PolarAngleAxis dataKey="subject" stroke="#888" />
-                                            <PolarRadiusAxis angle={30} domain={[0, 150]} stroke="#888" />
-                                            <Radar name="Class Average" dataKey="B" stroke={NEON_COLORS.secondary} fill={NEON_COLORS.secondary} fillOpacity={0.3} />
-                                            <Radar name="Selected Student" dataKey="A" stroke={NEON_COLORS.primary} fill={NEON_COLORS.primary} fillOpacity={0.5} />
-                                            <Legend />
-                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
-                                        </RadarChart>
-                                    </ResponsiveContainer>
-                                </CardContent>
-                            </Card>
+                            {/* TOPIC BAR CHART */}
+                            {selectedSubject && topicChapterData[selectedStudent]?.[selectedSubject] && (
+                                <ResponsiveContainer width="100%" height={350}>
+                                    <BarChart data={topicChapterData[selectedStudent][selectedSubject].topics}>
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <XAxis dataKey="topic" />
+                                        <YAxis />
+                                        <Tooltip />
+                                        <Bar dataKey="avg" fill={NEON_COLORS.primary} name="Avg Score" />
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            )}
 
-                            <Card className="glass-card col-span-1">
-                                <CardHeader>
-                                    <CardTitle>Strength & Weakness</CardTitle>
-                                </CardHeader>
-                                <CardContent className="space-y-6">
-                                    <div>
-                                        <h4 className="text-sm font-medium mb-3 flex items-center text-green-500">
-                                            <TrendingUp className="w-4 h-4 mr-2" /> Strengths
-                                        </h4>
-                                        <div className="space-y-2">
-                                            {studentAnalyticsData[selectedStudent].strengths.map((item: any, idx: number) => (
-                                                <div key={idx} className="bg-green-500/10 p-3 rounded-lg border border-green-500/20">
-                                                    <p className="font-medium">{item.subject}</p>
-                                                    <p className="text-xs text-muted-foreground">{item.desc}</p>
-                                                </div>
-                                            ))}
+                            {/* CHAPTER CHARTS */}
+                            {selectedSubject && topicChapterData[selectedStudent]?.[selectedSubject] && (
+                                <div className="space-y-6">
+                                    {topicChapterData[selectedStudent][selectedSubject].topics.map((topic: any, i: number) => (
+                                        <div key={i} className="p-4 border rounded-lg bg-secondary/5">
+                                            <h3 className="text-lg font-semibold mb-4">{topic.topic}</h3>
+                                            <ResponsiveContainer width="100%" height={220}>
+                                                <BarChart data={topic.chapters}>
+                                                    <CartesianGrid strokeDasharray="3 3" />
+                                                    <XAxis dataKey="chapter" />
+                                                    <YAxis />
+                                                    <Tooltip />
+                                                    <Bar dataKey="score" fill={NEON_COLORS.secondary} />
+                                                </BarChart>
+                                            </ResponsiveContainer>
                                         </div>
-                                    </div>
-                                    <div>
-                                        <h4 className="text-sm font-medium mb-3 flex items-center text-red-500">
-                                            <AlertCircle className="w-4 h-4 mr-2" /> Weaknesses
-                                        </h4>
-                                        <div className="space-y-2">
-                                            {studentAnalyticsData[selectedStudent].weaknesses.map((item: any, idx: number) => (
-                                                <div key={idx} className="bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-                                                    <p className="font-medium">{item.subject}</p>
-                                                    <p className="text-xs text-muted-foreground">{item.desc}</p>
-                                                </div>
-                                            ))}
-                                        </div>
-                                    </div>
-                                </CardContent>
-                            </Card>
-                        </div>
-                    </TabsContent>
-
-                    {/* Test Level Analytics */}
-                    <TabsContent value="test" className="space-y-6">
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                            <Card className="glass-card h-[400px]">
-                                <CardHeader>
-                                    <CardTitle>Question Analysis</CardTitle>
-                                    <CardDescription>Correct vs Incorrect responses per question</CardDescription>
-                                </CardHeader>
-                                <CardContent className="h-[320px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <BarChart data={questionAnalysisData} layout="vertical">
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
-                                            <XAxis type="number" stroke="#888" />
-                                            <YAxis dataKey="question" type="category" stroke="#888" />
-                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
-                                            <Legend />
-                                            <Bar dataKey="correct" stackId="a" fill={NEON_COLORS.secondary} name="Correct %" />
-                                            <Bar dataKey="incorrect" stackId="a" fill={NEON_COLORS.danger} name="Incorrect %" />
-                                        </BarChart>
-                                    </ResponsiveContainer>
-                                </CardContent>
-                            </Card>
-
-                            <div className="space-y-6">
-                                <Card className="glass-card h-[250px]">
-                                    <CardHeader>
-                                        <CardTitle>Difficulty Distribution</CardTitle>
-                                    </CardHeader>
-                                    <CardContent className="h-[180px]">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={difficultyData}
-                                                    cx="50%"
-                                                    cy="50%"
-                                                    innerRadius={60}
-                                                    outerRadius={80}
-                                                    paddingAngle={5}
-                                                    dataKey="value"
-                                                >
-                                                    {difficultyData.map((entry, index) => (
-                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                    ))}
-                                                </Pie>
-                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
-                                                <Legend verticalAlign="middle" align="right" layout="vertical" />
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                    </CardContent>
-                                </Card>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                    <Card className="glass-card p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-blue-500/20 rounded-full text-blue-500">
-                                                <Clock className="w-5 h-5" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Avg Time/Q</p>
-                                                <p className="text-lg font-bold">45s</p>
-                                            </div>
-                                        </div>
-                                    </Card>
-                                    <Card className="glass-card p-4">
-                                        <div className="flex items-center gap-3">
-                                            <div className="p-2 bg-green-500/20 rounded-full text-green-500">
-                                                <CheckCircle className="w-5 h-5" />
-                                            </div>
-                                            <div>
-                                                <p className="text-xs text-muted-foreground">Completion Rate</p>
-                                                <p className="text-lg font-bold">98%</p>
-                                            </div>
-                                        </div>
-                                    </Card>
+                                    ))}
                                 </div>
-                            </div>
-                        </div>
-                    </TabsContent>
-                </Tabs>
-            </div>
+                            )}
+
+                            {selectedSubject && !topicChapterData[selectedStudent]?.[selectedSubject] && (
+                                <div className="text-center py-10 text-muted-foreground">
+                                    No detailed topic data available for {selectedSubject}.
+                                </div>
+                            )}
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                {/* ---------------- TEST METRICS ---------------- */}
+                <TabsContent value="test" className="space-y-6">
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                        {/* RECENT TEST PERFORMANCE */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Recent Test Performance</CardTitle>
+                                <CardDescription>Average vs Top scores in recent tests</CardDescription>
+                            </CardHeader>
+                            <CardContent className="h-[300px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <AreaChart data={recentTestsData}>
+                                        <defs>
+                                            <linearGradient id="colorAvg" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#8884d8" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#8884d8" stopOpacity={0} />
+                                            </linearGradient>
+                                            <linearGradient id="colorTop" x1="0" y1="0" x2="0" y2="1">
+                                                <stop offset="5%" stopColor="#82ca9d" stopOpacity={0.8} />
+                                                <stop offset="95%" stopColor="#82ca9d" stopOpacity={0} />
+                                            </linearGradient>
+                                        </defs>
+                                        <XAxis dataKey="test" />
+                                        <YAxis />
+                                        <CartesianGrid strokeDasharray="3 3" />
+                                        <Tooltip />
+                                        <Area type="monotone" dataKey="avg" stroke="#8884d8" fillOpacity={1} fill="url(#colorAvg)" />
+                                        <Area type="monotone" dataKey="top" stroke="#82ca9d" fillOpacity={1} fill="url(#colorTop)" />
+                                    </AreaChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+
+                        {/* QUESTION TYPE DISTRIBUTION */}
+                        <Card>
+                            <CardHeader>
+                                <CardTitle>Question Type Analysis</CardTitle>
+                                <CardDescription>Distribution of question types in tests</CardDescription>
+                            </CardHeader>
+                            <CardContent className="h-[300px]">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <PieChart>
+                                        <Pie
+                                            data={questionTypeData}
+                                            cx="50%"
+                                            cy="50%"
+                                            innerRadius={60}
+                                            outerRadius={80}
+                                            fill="#8884d8"
+                                            paddingAngle={5}
+                                            dataKey="value"
+                                        >
+                                            {questionTypeData.map((entry, index) => (
+                                                <Cell key={`cell-${index}`} fill={['#0088FE', '#00C49F', '#FFBB28', '#FF8042'][index % 4]} />
+                                            ))}
+                                        </Pie>
+                                        <Tooltip />
+                                        <Legend />
+                                    </PieChart>
+                                </ResponsiveContainer>
+                            </CardContent>
+                        </Card>
+                    </div>
+                </TabsContent>
+            </Tabs>
         </div>
     );
 };
 
 export default AnalyticsDashboard;
+
+// ---------- END OF FILE ----------
