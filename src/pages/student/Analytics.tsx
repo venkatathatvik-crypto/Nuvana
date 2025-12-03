@@ -59,7 +59,7 @@ const StudentAnalytics = () => {
     const navigate = useNavigate();
 
     return (
-        <div className="min-h-screen p-6 bg-background space-y-8">
+        <div className="min-h-screen p-6 space-y-8">
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -109,7 +109,7 @@ const StudentAnalytics = () => {
                         <CardTitle className="text-sm font-medium text-muted-foreground">Attendance</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold text-neon-blue">92%</div>
+                        <div className="text-2xl font-bold text-blue-500">92%</div>
                         <p className="text-xs text-muted-foreground mt-1">Excellent</p>
                     </CardContent>
                 </Card>

@@ -47,12 +47,13 @@ All colors MUST be HSL.
 
     --radius: 0.5rem;
 
-    --neon-cyan: 180 100% 40%;
+    --neon-cyan: 215 20% 65%;
+
     /* Darkened for light mode visibility */
     --neon-purple: 221.2 83.2% 53.3%;
     --neon-pink: 200 100% 45%;
     /* Darkened for light mode visibility */
-    --neon-blue: 220 100% 50%;
+    --neon-blue: 217.2 71.6% 56.9%;
 
     --glass-bg: 255 255 255;
     --glass-border: 214.3 31.8% 85%;
@@ -96,10 +97,11 @@ All colors MUST be HSL.
     --input: 217.2 32.6% 17.5%;
     --ring: 212.7 26.8% 83.9%;
 
-    --neon-cyan: 180 100% 50%;
+    --neon-cyan: 215 20% 65%;
+
     --neon-purple: 221.2 83.2% 53.3%;
     --neon-pink: 200 100% 60%;
-    --neon-blue: 220 100% 60%;
+    --neon-blue: 217.2 71.6% 46.9%;
 
     --glass-bg: 222.2 84% 4.9%;
     --glass-border: 217.2 32.6% 17.5%;
@@ -123,6 +125,7 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    position: relative;
   }
 }
 

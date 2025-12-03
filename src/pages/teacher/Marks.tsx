@@ -238,7 +238,7 @@ const TeacherMarks = () => {
 
   // --- JSX RENDERING ---
   return (
-    <div className="min-h-screen p-6 bg-background">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         {/* Header/Navigation */}
         <div className="flex items-center gap-4">

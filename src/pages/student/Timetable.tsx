@@ -52,14 +52,14 @@ const Timetable = () => {
     Mathematics: "bg-neon-cyan/20 border-neon-cyan/50",
     Physics: "bg-neon-purple/20 border-neon-purple/50",
     Chemistry: "bg-neon-pink/20 border-neon-pink/50",
-    "Computer Science": "bg-neon-blue/20 border-neon-blue/50",
+    "Computer Science": "bg-blue-500/20 border-blue-500/50",
     English: "bg-accent/20 border-accent/50",
     "Physics Lab": "bg-neon-purple/20 border-neon-purple/50",
     "Chemistry Lab": "bg-neon-pink/20 border-neon-pink/50",
   };
 
   return (
-    <div className="min-h-screen p-6 bg-background">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/student")}>

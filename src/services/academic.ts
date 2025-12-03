@@ -1,5 +1,6 @@
 import { supabase } from "@/supabase/client";
 import { NestedClass, FlattenedClass } from "@/schemas/academic";
+export type { FlattenedClass, NestedClass };
 
 interface RawSubjectData {
   subject_master_id: string;
@@ -14,13 +15,13 @@ interface TeacherClassRow {
 interface GradeSubjectRow {
   id: string;
   subjects_master:
-    | {
-        name: string;
-      }
-    | {
-        name: string;
-      }[]
-    | null;
+  | {
+    name: string;
+  }
+  | {
+    name: string;
+  }[]
+  | null;
 }
 
 const FILES_BUCKET =
@@ -76,13 +77,13 @@ interface TeacherFileRow {
   file_categories: NamedEntity | NamedEntity[] | null;
   classes: NamedEntity | NamedEntity[] | null;
   grade_subjects:
-    | {
-        subjects_master: NamedEntity | NamedEntity[] | null;
-      }
-    | {
-        subjects_master: NamedEntity | NamedEntity[] | null;
-      }[]
-    | null;
+  | {
+    subjects_master: NamedEntity | NamedEntity[] | null;
+  }
+  | {
+    subjects_master: NamedEntity | NamedEntity[] | null;
+  }[]
+  | null;
 }
 
 interface StoragePathRow {

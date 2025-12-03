@@ -149,298 +149,303 @@ const AnalyticsDashboard = () => {
     const [selectedStudent, setSelectedStudent] = useState("S1");
 
     return (
-        <div className="min-h-screen p-6 bg-background space-y-8">
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-between items-center"
-            >
-                <div>
-                    <h1 className="text-4xl font-bold neon-text mb-2">Analytics Dashboard 📊</h1>
-                    <p className="text-muted-foreground">Deep insights into student performance</p>
-                </div>
-                <Select value={selectedClass} onValueChange={setSelectedClass}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Select Class" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="Class 10A">Class 10A</SelectItem>
-                        <SelectItem value="Class 10B">Class 10B</SelectItem>
-                        <SelectItem value="Class 11A">Class 11A</SelectItem>
-                    </SelectContent>
-                </Select>
-            </motion.div>
+        <div className="min-h-screen p-6 relative overflow-hidden">
+            <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/10" />
 
-            <Tabs defaultValue="class" className="space-y-6">
-                <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
-                    <TabsTrigger value="class">Class Insights</TabsTrigger>
-                    <TabsTrigger value="student">Student Analysis</TabsTrigger>
-                    <TabsTrigger value="test">Test Metrics</TabsTrigger>
-                </TabsList>
 
-                {/* Class Level Analytics */}
-                <TabsContent value="class" className="space-y-6">
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                        <Card className="glass-card">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Class Average</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-neon-purple">78.5%</div>
-                                <p className="text-xs text-green-500 flex items-center mt-1">
-                                    <TrendingUp className="w-3 h-3 mr-1" /> +2.5% from last month
-                                </p>
-                            </CardContent>
-                        </Card>
-                        <Card className="glass-card">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Attendance Rate</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-neon-cyan">92%</div>
-                                <p className="text-xs text-muted-foreground mt-1">Consistent</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="glass-card">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Top Performer</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-neon-pink">Alice S.</div>
-                                <p className="text-xs text-muted-foreground mt-1">98.5% Avg Score</p>
-                            </CardContent>
-                        </Card>
-                        <Card className="glass-card">
-                            <CardHeader className="pb-2">
-                                <CardTitle className="text-sm font-medium text-muted-foreground">Needs Attention</CardTitle>
-                            </CardHeader>
-                            <CardContent>
-                                <div className="text-2xl font-bold text-red-500">3 Students</div>
-                                <p className="text-xs text-muted-foreground mt-1">Below 60% Avg</p>
-                            </CardContent>
-                        </Card>
+            <div className="relative z-10 space-y-8">
+                <motion.div
+                    initial={{ opacity: 0, y: -20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="flex justify-between items-center"
+                >
+                    <div>
+                        <h1 className="text-4xl font-bold neon-text mb-2">Analytics Dashboard 📊</h1>
+                        <p className="text-muted-foreground">Deep insights into student performance</p>
                     </div>
+                    <Select value={selectedClass} onValueChange={setSelectedClass}>
+                        <SelectTrigger className="w-[180px]">
+                            <SelectValue placeholder="Select Class" />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="Class 10A">Class 10A</SelectItem>
+                            <SelectItem value="Class 10B">Class 10B</SelectItem>
+                            <SelectItem value="Class 11A">Class 11A</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </motion.div>
 
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.1 }}
-                        >
-                            <Card className="glass-card h-[400px]">
-                                <CardHeader>
-                                    <CardTitle>Performance Trends</CardTitle>
-                                    <CardDescription>Average score vs Attendance over time</CardDescription>
+                <Tabs defaultValue="class" className="space-y-6">
+                    <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
+                        <TabsTrigger value="class">Class Insights</TabsTrigger>
+                        <TabsTrigger value="student">Student Analysis</TabsTrigger>
+                        <TabsTrigger value="test">Test Metrics</TabsTrigger>
+                    </TabsList>
+
+                    {/* Class Level Analytics */}
+                    <TabsContent value="class" className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                            <Card className="glass-card">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Class Average</CardTitle>
                                 </CardHeader>
-                                <CardContent className="h-[320px]">
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-neon-purple">78.5%</div>
+                                    <p className="text-xs text-green-500 flex items-center mt-1">
+                                        <TrendingUp className="w-3 h-3 mr-1" /> +2.5% from last month
+                                    </p>
+                                </CardContent>
+                            </Card>
+                            <Card className="glass-card">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Attendance Rate</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-neon-cyan">92%</div>
+                                    <p className="text-xs text-muted-foreground mt-1">Consistent</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="glass-card">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Top Performer</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-neon-pink">Alice S.</div>
+                                    <p className="text-xs text-muted-foreground mt-1">98.5% Avg Score</p>
+                                </CardContent>
+                            </Card>
+                            <Card className="glass-card">
+                                <CardHeader className="pb-2">
+                                    <CardTitle className="text-sm font-medium text-muted-foreground">Needs Attention</CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="text-2xl font-bold text-red-500">3 Students</div>
+                                    <p className="text-xs text-muted-foreground mt-1">Below 60% Avg</p>
+                                </CardContent>
+                            </Card>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.1 }}
+                            >
+                                <Card className="glass-card h-[400px]">
+                                    <CardHeader>
+                                        <CardTitle>Performance Trends</CardTitle>
+                                        <CardDescription>Average score vs Attendance over time</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="h-[320px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <AreaChart data={performanceTrendData}>
+                                                <defs>
+                                                    <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor={NEON_COLORS.primary} stopOpacity={0.8} />
+                                                        <stop offset="95%" stopColor={NEON_COLORS.primary} stopOpacity={0} />
+                                                    </linearGradient>
+                                                    <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
+                                                        <stop offset="5%" stopColor={NEON_COLORS.secondary} stopOpacity={0.8} />
+                                                        <stop offset="95%" stopColor={NEON_COLORS.secondary} stopOpacity={0} />
+                                                    </linearGradient>
+                                                </defs>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                                                <XAxis dataKey="month" stroke="#888" />
+                                                <YAxis stroke="#888" />
+                                                <Tooltip
+                                                    contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
+                                                    itemStyle={{ color: '#fff' }}
+                                                />
+                                                <Legend />
+                                                <Area type="monotone" dataKey="avgScore" stroke={NEON_COLORS.primary} fillOpacity={1} fill="url(#colorScore)" name="Avg Score" />
+                                                <Area type="monotone" dataKey="attendance" stroke={NEON_COLORS.secondary} fillOpacity={1} fill="url(#colorAtt)" name="Attendance" />
+                                            </AreaChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+
+                            <motion.div
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: 0.2 }}
+                            >
+                                <Card className="glass-card h-[400px]">
+                                    <CardHeader>
+                                        <CardTitle>Attendance vs Marks Correlation</CardTitle>
+                                        <CardDescription>Does attendance impact performance?</CardDescription>
+                                    </CardHeader>
+                                    <CardContent className="h-[320px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <ScatterChart>
+                                                <CartesianGrid strokeDasharray="3 3" stroke="#333" />
+                                                <XAxis type="number" dataKey="attendance" name="Attendance" unit="%" stroke="#888" domain={[50, 100]} />
+                                                <YAxis type="number" dataKey="marks" name="Marks" unit="%" stroke="#888" domain={[0, 100]} />
+                                                <ZAxis type="category" dataKey="student" name="Student" />
+                                                <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
+                                                <Scatter name="Students" data={attendanceVsMarksData} fill={NEON_COLORS.accent} />
+                                            </ScatterChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
+                                </Card>
+                            </motion.div>
+                        </div>
+                    </TabsContent>
+
+                    {/* Student Level Analytics */}
+                    <TabsContent value="student" className="space-y-6">
+                        <div className="flex items-center gap-4 bg-secondary/10 p-4 rounded-lg border border-white/5">
+                            <Users className="w-5 h-5 text-blue-500" />
+                            <label className="text-sm font-medium">Select Student for Analysis:</label>
+                            <Select value={selectedStudent} onValueChange={setSelectedStudent}>
+                                <SelectTrigger className="w-[250px] glass">
+                                    <SelectValue placeholder="Select Student" />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    {studentsList.map(student => (
+                                        <SelectItem key={student.id} value={student.id}>{student.name}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
+
+                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                            <Card className="glass-card col-span-1 lg:col-span-2 h-[450px]">
+                                <CardHeader>
+                                    <CardTitle>Subject-wise Performance</CardTitle>
+                                    <CardDescription>Comparative analysis for {studentsList.find(s => s.id === selectedStudent)?.name}</CardDescription>
+                                </CardHeader>
+                                <CardContent className="h-[370px]">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <AreaChart data={performanceTrendData}>
-                                            <defs>
-                                                <linearGradient id="colorScore" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor={NEON_COLORS.primary} stopOpacity={0.8} />
-                                                    <stop offset="95%" stopColor={NEON_COLORS.primary} stopOpacity={0} />
-                                                </linearGradient>
-                                                <linearGradient id="colorAtt" x1="0" y1="0" x2="0" y2="1">
-                                                    <stop offset="5%" stopColor={NEON_COLORS.secondary} stopOpacity={0.8} />
-                                                    <stop offset="95%" stopColor={NEON_COLORS.secondary} stopOpacity={0} />
-                                                </linearGradient>
-                                            </defs>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                                            <XAxis dataKey="month" stroke="#888" />
-                                            <YAxis stroke="#888" />
-                                            <Tooltip
-                                                contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }}
-                                                itemStyle={{ color: '#fff' }}
-                                            />
+                                        <RadarChart cx="50%" cy="50%" outerRadius="80%" data={studentAnalyticsData[selectedStudent].radar}>
+                                            <PolarGrid stroke="#444" />
+                                            <PolarAngleAxis dataKey="subject" stroke="#888" />
+                                            <PolarRadiusAxis angle={30} domain={[0, 150]} stroke="#888" />
+                                            <Radar name="Class Average" dataKey="B" stroke={NEON_COLORS.secondary} fill={NEON_COLORS.secondary} fillOpacity={0.3} />
+                                            <Radar name="Selected Student" dataKey="A" stroke={NEON_COLORS.primary} fill={NEON_COLORS.primary} fillOpacity={0.5} />
                                             <Legend />
-                                            <Area type="monotone" dataKey="avgScore" stroke={NEON_COLORS.primary} fillOpacity={1} fill="url(#colorScore)" name="Avg Score" />
-                                            <Area type="monotone" dataKey="attendance" stroke={NEON_COLORS.secondary} fillOpacity={1} fill="url(#colorAtt)" name="Attendance" />
-                                        </AreaChart>
+                                            <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
+                                        </RadarChart>
                                     </ResponsiveContainer>
                                 </CardContent>
                             </Card>
-                        </motion.div>
 
-                        <motion.div
-                            initial={{ opacity: 0, scale: 0.95 }}
-                            animate={{ opacity: 1, scale: 1 }}
-                            transition={{ delay: 0.2 }}
-                        >
+                            <Card className="glass-card col-span-1">
+                                <CardHeader>
+                                    <CardTitle>Strength & Weakness</CardTitle>
+                                </CardHeader>
+                                <CardContent className="space-y-6">
+                                    <div>
+                                        <h4 className="text-sm font-medium mb-3 flex items-center text-green-500">
+                                            <TrendingUp className="w-4 h-4 mr-2" /> Strengths
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {studentAnalyticsData[selectedStudent].strengths.map((item: any, idx: number) => (
+                                                <div key={idx} className="bg-green-500/10 p-3 rounded-lg border border-green-500/20">
+                                                    <p className="font-medium">{item.subject}</p>
+                                                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <h4 className="text-sm font-medium mb-3 flex items-center text-red-500">
+                                            <AlertCircle className="w-4 h-4 mr-2" /> Weaknesses
+                                        </h4>
+                                        <div className="space-y-2">
+                                            {studentAnalyticsData[selectedStudent].weaknesses.map((item: any, idx: number) => (
+                                                <div key={idx} className="bg-red-500/10 p-3 rounded-lg border border-red-500/20">
+                                                    <p className="font-medium">{item.subject}</p>
+                                                    <p className="text-xs text-muted-foreground">{item.desc}</p>
+                                                </div>
+                                            ))}
+                                        </div>
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        </div>
+                    </TabsContent>
+
+                    {/* Test Level Analytics */}
+                    <TabsContent value="test" className="space-y-6">
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             <Card className="glass-card h-[400px]">
                                 <CardHeader>
-                                    <CardTitle>Attendance vs Marks Correlation</CardTitle>
-                                    <CardDescription>Does attendance impact performance?</CardDescription>
+                                    <CardTitle>Question Analysis</CardTitle>
+                                    <CardDescription>Correct vs Incorrect responses per question</CardDescription>
                                 </CardHeader>
                                 <CardContent className="h-[320px]">
                                     <ResponsiveContainer width="100%" height="100%">
-                                        <ScatterChart>
-                                            <CartesianGrid strokeDasharray="3 3" stroke="#333" />
-                                            <XAxis type="number" dataKey="attendance" name="Attendance" unit="%" stroke="#888" domain={[50, 100]} />
-                                            <YAxis type="number" dataKey="marks" name="Marks" unit="%" stroke="#888" domain={[0, 100]} />
-                                            <ZAxis type="category" dataKey="student" name="Student" />
-                                            <Tooltip cursor={{ strokeDasharray: '3 3' }} contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
-                                            <Scatter name="Students" data={attendanceVsMarksData} fill={NEON_COLORS.accent} />
-                                        </ScatterChart>
-                                    </ResponsiveContainer>
-                                </CardContent>
-                            </Card>
-                        </motion.div>
-                    </div>
-                </TabsContent>
-
-                {/* Student Level Analytics */}
-                <TabsContent value="student" className="space-y-6">
-                    <div className="flex items-center gap-4 bg-secondary/10 p-4 rounded-lg border border-white/5">
-                        <Users className="w-5 h-5 text-neon-blue" />
-                        <label className="text-sm font-medium">Select Student for Analysis:</label>
-                        <Select value={selectedStudent} onValueChange={setSelectedStudent}>
-                            <SelectTrigger className="w-[250px] glass">
-                                <SelectValue placeholder="Select Student" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {studentsList.map(student => (
-                                    <SelectItem key={student.id} value={student.id}>{student.name}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
-                    </div>
-
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        <Card className="glass-card col-span-1 lg:col-span-2 h-[450px]">
-                            <CardHeader>
-                                <CardTitle>Subject-wise Performance</CardTitle>
-                                <CardDescription>Comparative analysis for {studentsList.find(s => s.id === selectedStudent)?.name}</CardDescription>
-                            </CardHeader>
-                            <CardContent className="h-[370px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <RadarChart cx="50%" cy="50%" outerRadius="80%" data={studentAnalyticsData[selectedStudent].radar}>
-                                        <PolarGrid stroke="#444" />
-                                        <PolarAngleAxis dataKey="subject" stroke="#888" />
-                                        <PolarRadiusAxis angle={30} domain={[0, 150]} stroke="#888" />
-                                        <Radar name="Class Average" dataKey="B" stroke={NEON_COLORS.secondary} fill={NEON_COLORS.secondary} fillOpacity={0.3} />
-                                        <Radar name="Selected Student" dataKey="A" stroke={NEON_COLORS.primary} fill={NEON_COLORS.primary} fillOpacity={0.5} />
-                                        <Legend />
-                                        <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
-                                    </RadarChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-
-                        <Card className="glass-card col-span-1">
-                            <CardHeader>
-                                <CardTitle>Strength & Weakness</CardTitle>
-                            </CardHeader>
-                            <CardContent className="space-y-6">
-                                <div>
-                                    <h4 className="text-sm font-medium mb-3 flex items-center text-green-500">
-                                        <TrendingUp className="w-4 h-4 mr-2" /> Strengths
-                                    </h4>
-                                    <div className="space-y-2">
-                                        {studentAnalyticsData[selectedStudent].strengths.map((item: any, idx: number) => (
-                                            <div key={idx} className="bg-green-500/10 p-3 rounded-lg border border-green-500/20">
-                                                <p className="font-medium">{item.subject}</p>
-                                                <p className="text-xs text-muted-foreground">{item.desc}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                                <div>
-                                    <h4 className="text-sm font-medium mb-3 flex items-center text-red-500">
-                                        <AlertCircle className="w-4 h-4 mr-2" /> Weaknesses
-                                    </h4>
-                                    <div className="space-y-2">
-                                        {studentAnalyticsData[selectedStudent].weaknesses.map((item: any, idx: number) => (
-                                            <div key={idx} className="bg-red-500/10 p-3 rounded-lg border border-red-500/20">
-                                                <p className="font-medium">{item.subject}</p>
-                                                <p className="text-xs text-muted-foreground">{item.desc}</p>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            </CardContent>
-                        </Card>
-                    </div>
-                </TabsContent>
-
-                {/* Test Level Analytics */}
-                <TabsContent value="test" className="space-y-6">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                        <Card className="glass-card h-[400px]">
-                            <CardHeader>
-                                <CardTitle>Question Analysis</CardTitle>
-                                <CardDescription>Correct vs Incorrect responses per question</CardDescription>
-                            </CardHeader>
-                            <CardContent className="h-[320px]">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={questionAnalysisData} layout="vertical">
-                                        <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
-                                        <XAxis type="number" stroke="#888" />
-                                        <YAxis dataKey="question" type="category" stroke="#888" />
-                                        <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
-                                        <Legend />
-                                        <Bar dataKey="correct" stackId="a" fill={NEON_COLORS.secondary} name="Correct %" />
-                                        <Bar dataKey="incorrect" stackId="a" fill={NEON_COLORS.danger} name="Incorrect %" />
-                                    </BarChart>
-                                </ResponsiveContainer>
-                            </CardContent>
-                        </Card>
-
-                        <div className="space-y-6">
-                            <Card className="glass-card h-[250px]">
-                                <CardHeader>
-                                    <CardTitle>Difficulty Distribution</CardTitle>
-                                </CardHeader>
-                                <CardContent className="h-[180px]">
-                                    <ResponsiveContainer width="100%" height="100%">
-                                        <PieChart>
-                                            <Pie
-                                                data={difficultyData}
-                                                cx="50%"
-                                                cy="50%"
-                                                innerRadius={60}
-                                                outerRadius={80}
-                                                paddingAngle={5}
-                                                dataKey="value"
-                                            >
-                                                {difficultyData.map((entry, index) => (
-                                                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                                                ))}
-                                            </Pie>
+                                        <BarChart data={questionAnalysisData} layout="vertical">
+                                            <CartesianGrid strokeDasharray="3 3" stroke="#333" horizontal={false} />
+                                            <XAxis type="number" stroke="#888" />
+                                            <YAxis dataKey="question" type="category" stroke="#888" />
                                             <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
-                                            <Legend verticalAlign="middle" align="right" layout="vertical" />
-                                        </PieChart>
+                                            <Legend />
+                                            <Bar dataKey="correct" stackId="a" fill={NEON_COLORS.secondary} name="Correct %" />
+                                            <Bar dataKey="incorrect" stackId="a" fill={NEON_COLORS.danger} name="Incorrect %" />
+                                        </BarChart>
                                     </ResponsiveContainer>
                                 </CardContent>
                             </Card>
 
-                            <div className="grid grid-cols-2 gap-4">
-                                <Card className="glass-card p-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-blue-500/20 rounded-full text-blue-500">
-                                            <Clock className="w-5 h-5" />
-                                        </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Avg Time/Q</p>
-                                            <p className="text-lg font-bold">45s</p>
-                                        </div>
-                                    </div>
+                            <div className="space-y-6">
+                                <Card className="glass-card h-[250px]">
+                                    <CardHeader>
+                                        <CardTitle>Difficulty Distribution</CardTitle>
+                                    </CardHeader>
+                                    <CardContent className="h-[180px]">
+                                        <ResponsiveContainer width="100%" height="100%">
+                                            <PieChart>
+                                                <Pie
+                                                    data={difficultyData}
+                                                    cx="50%"
+                                                    cy="50%"
+                                                    innerRadius={60}
+                                                    outerRadius={80}
+                                                    paddingAngle={5}
+                                                    dataKey="value"
+                                                >
+                                                    {difficultyData.map((entry, index) => (
+                                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                                                    ))}
+                                                </Pie>
+                                                <Tooltip contentStyle={{ backgroundColor: '#1a1a1a', border: '1px solid #333' }} />
+                                                <Legend verticalAlign="middle" align="right" layout="vertical" />
+                                            </PieChart>
+                                        </ResponsiveContainer>
+                                    </CardContent>
                                 </Card>
-                                <Card className="glass-card p-4">
-                                    <div className="flex items-center gap-3">
-                                        <div className="p-2 bg-green-500/20 rounded-full text-green-500">
-                                            <CheckCircle className="w-5 h-5" />
+
+                                <div className="grid grid-cols-2 gap-4">
+                                    <Card className="glass-card p-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-blue-500/20 rounded-full text-blue-500">
+                                                <Clock className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">Avg Time/Q</p>
+                                                <p className="text-lg font-bold">45s</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="text-xs text-muted-foreground">Completion Rate</p>
-                                            <p className="text-lg font-bold">98%</p>
+                                    </Card>
+                                    <Card className="glass-card p-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="p-2 bg-green-500/20 rounded-full text-green-500">
+                                                <CheckCircle className="w-5 h-5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-muted-foreground">Completion Rate</p>
+                                                <p className="text-lg font-bold">98%</p>
+                                            </div>
                                         </div>
-                                    </div>
-                                </Card>
+                                    </Card>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </TabsContent>
-            </Tabs>
+                    </TabsContent>
+                </Tabs>
+            </div>
         </div>
     );
 };

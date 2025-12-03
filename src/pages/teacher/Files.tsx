@@ -304,7 +304,7 @@ const TeacherFiles = () => {
   const subjectCount = Math.max(subjectFilterOptions.length - 1, 0);
 
   return (
-    <div className="min-h-screen p-6 bg-background">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex items-center gap-4">
           <Button

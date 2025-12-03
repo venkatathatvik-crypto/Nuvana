@@ -51,7 +51,7 @@ const TestTake = () => {
         const percentage = Math.round((submission.score / totalMarks) * 100);
 
         return (
-            <div className="min-h-screen p-6 bg-background space-y-8">
+            <div className="min-h-screen p-6 space-y-8">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -166,7 +166,7 @@ const TestTake = () => {
     }
 
     return (
-        <div className="min-h-screen bg-background p-4 md:p-8">
+        <div className="min-h-screen p-4 md:p-8">
             <TestPlayer test={test} studentId={studentId} onComplete={handleComplete} />
         </div>
     );

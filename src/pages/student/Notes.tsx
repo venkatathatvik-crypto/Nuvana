@@ -39,7 +39,7 @@ const Notes = () => {
       title: "Assignment Due",
       content: "Complete Computer Science project by Friday. Need to finish the database design.",
       subject: "Computer Science",
-      color: "neon-blue",
+      color: "blue-500",
       date: "2024-11-25",
     },
     {
@@ -64,13 +64,13 @@ const Notes = () => {
     Mathematics: "bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30",
     Physics: "bg-neon-purple/20 text-neon-purple border-neon-purple/30",
     Chemistry: "bg-neon-pink/20 text-neon-pink border-neon-pink/30",
-    "Computer Science": "bg-neon-blue/20 text-neon-blue border-neon-blue/30",
+    "Computer Science": "bg-blue-500/20 text-blue-500 border-blue-500/30",
     English: "bg-accent/20 text-accent border-accent/30",
     General: "bg-primary/20 text-primary border-primary/30",
   };
 
   return (
-    <div className="min-h-screen p-6 bg-background">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">

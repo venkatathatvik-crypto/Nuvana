@@ -54,7 +54,7 @@ const StudentFeedback = () => {
 
     if (submitted) {
         return (
-            <div className="min-h-screen p-6 bg-background flex items-center justify-center">
+            <div className="min-h-screen p-6 flex items-center justify-center">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -78,7 +78,7 @@ const StudentFeedback = () => {
     }
 
     return (
-        <div className="min-h-screen p-6 bg-background">
+        <div className="min-h-screen p-6">
             <div className="max-w-2xl mx-auto space-y-8">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}

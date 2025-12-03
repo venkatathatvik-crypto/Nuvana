@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Shield, BookOpen, Users, School, Save, Plus, Trash2, Key, CheckCircle } from "lucide-react";
+import { Shield, BookOpen, Users, School, Save, Plus, Trash2, Key, CheckCircle, Clock, Calendar } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -10,6 +10,7 @@ import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const ADMIN_KEY = "rohit_sharma_the_legend"; // In a real app, this would be server-side
+console.log("ADMIN PANEL LOADED FROM TIMETABLE VERSION");
 
 const AdminPanel = () => {
     const navigate = useNavigate();
@@ -46,6 +47,28 @@ const AdminPanel = () => {
 
     const [selectedTeacherForMap, setSelectedTeacherForMap] = useState("");
     const [selectedSubjectForMap, setSelectedSubjectForMap] = useState("");
+
+    // Timetable State
+    const [selectedClassForTimetable, setSelectedClassForTimetable] = useState("");
+    const [timetables, setTimetables] = useState<Record<string, any>>({});
+    const days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"];
+    const periods = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+
+    const handleTimetableUpdate = (day: string, period: number, field: 'subject' | 'teacher', value: string) => {
+        setTimetables(prev => ({
+            ...prev,
+            [selectedClassForTimetable]: {
+                ...prev[selectedClassForTimetable],
+                [day]: {
+                    ...prev[selectedClassForTimetable]?.[day],
+                    [period]: {
+                        ...prev[selectedClassForTimetable]?.[day]?.[period],
+                        [field]: value
+                    }
+                }
+            }
+        }));
+    };
 
     const handleLogin = () => {
         if (inputKey === ADMIN_KEY) {
@@ -92,7 +115,7 @@ const AdminPanel = () => {
 
     if (!isAuthenticated) {
         return (
-            <div className="min-h-screen flex items-center justify-center bg-background p-4">
+            <div className="min-h-screen flex items-center justify-center p-4">
                 <motion.div
                     initial={{ opacity: 0, scale: 0.9 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -130,7 +153,7 @@ const AdminPanel = () => {
     }
 
     return (
-        <div className="min-h-screen p-6 bg-background">
+        <div className="min-h-screen p-6">
             <div className="max-w-7xl mx-auto space-y-8">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
@@ -138,7 +161,7 @@ const AdminPanel = () => {
                     className="flex items-center justify-between"
                 >
                     <div>
-                        <h1 className="text-4xl font-bold neon-text mb-2">Admin Panel 🛡️</h1>
+                        <h1 className="text-4xl font-bold neon-text mb-2">Admin Panel (Updated) 🛡️</h1>
                         <p className="text-muted-foreground">Manage school structure and assignments</p>
                     </div>
                     <Button variant="outline" className="glass" onClick={() => navigate("/teacher")}>
@@ -147,10 +170,11 @@ const AdminPanel = () => {
                 </motion.div>
 
                 <Tabs defaultValue="structure" className="space-y-6">
-                    <TabsList className="grid w-full grid-cols-3 glass p-1">
-                        <TabsTrigger value="structure">Structure (Classes & Subjects)</TabsTrigger>
-                        <TabsTrigger value="assignments">Class Assignments</TabsTrigger>
-                        <TabsTrigger value="mapping">Teacher-Subject Mapping</TabsTrigger>
+                    <TabsList className="grid w-full grid-cols-2 md:grid-cols-4 glass p-1 h-auto">
+                        <TabsTrigger value="structure">Structure</TabsTrigger>
+                        <TabsTrigger value="assignments">Assignments</TabsTrigger>
+                        <TabsTrigger value="mapping">Mapping</TabsTrigger>
+                        <TabsTrigger value="timetable">Timetable 📅</TabsTrigger>
                     </TabsList>
 
                     {/* Structure Tab */}
@@ -208,7 +232,7 @@ const AdminPanel = () => {
                     <TabsContent value="assignments">
                         <Card className="glass-card p-6">
                             <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
-                                <Users className="w-5 h-5 text-neon-blue" /> Assign People to Classes
+                                <Users className="w-5 h-5 text-blue-500" /> Assign People to Classes
                             </h2>
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -322,6 +346,83 @@ const AdminPanel = () => {
                                         </div>
                                     </div>
                                 </div>
+                            </div>
+                        </Card>
+                    </TabsContent>
+
+                    {/* Timetable Tab */}
+                    <TabsContent value="timetable">
+                        <Card className="glass-card p-6">
+                            <h2 className="text-xl font-semibold mb-6 flex items-center gap-2">
+                                <Calendar className="w-5 h-5 text-neon-cyan" /> Design Class Timetable
+                            </h2>
+
+                            <div className="space-y-6">
+                                <div className="max-w-xs">
+                                    <label className="text-sm text-muted-foreground mb-2 block">Select Class to Design</label>
+                                    <select
+                                        className="w-full p-3 rounded-lg bg-secondary/20 border border-white/10"
+                                        value={selectedClassForTimetable}
+                                        onChange={(e) => setSelectedClassForTimetable(e.target.value)}
+                                    >
+                                        <option value="">Select Class</option>
+                                        {classes.map(c => <option key={c} value={c}>{c}</option>)}
+                                    </select>
+                                </div>
+
+                                {selectedClassForTimetable && (
+                                    <div className="overflow-x-auto">
+                                        <div className="min-w-[1000px]">
+                                            <div className="grid grid-cols-9 gap-2 mb-4">
+                                                <div className="p-2 font-bold text-center bg-secondary/30 rounded flex items-center justify-center">Day / Period</div>
+                                                {periods.map(p => (
+                                                    <div key={p} className="p-2 font-bold text-center bg-secondary/30 rounded flex flex-col justify-center">
+                                                        <span>Period {p}</span>
+                                                        <span className="text-xs text-muted-foreground font-normal">
+                                                            {8 + p}:00 - {9 + p}:00
+                                                        </span>
+                                                    </div>
+                                                ))}
+                                            </div>
+
+                                            {days.map(day => (
+                                                <div key={day} className="grid grid-cols-9 gap-2 mb-2">
+                                                    <div className="p-2 font-semibold flex items-center justify-center bg-secondary/10 rounded">
+                                                        {day}
+                                                    </div>
+                                                    {periods.map(period => {
+                                                        const slot = timetables[selectedClassForTimetable]?.[day]?.[period] || {};
+                                                        return (
+                                                            <div key={period} className="p-2 bg-secondary/5 border border-white/5 rounded space-y-2">
+                                                                <select
+                                                                    className="w-full text-xs p-1 rounded bg-background border border-white/10"
+                                                                    value={slot.subject || ""}
+                                                                    onChange={(e) => handleTimetableUpdate(day, period, 'subject', e.target.value)}
+                                                                >
+                                                                    <option value="">Subject</option>
+                                                                    {subjects.map(s => <option key={s} value={s}>{s}</option>)}
+                                                                </select>
+                                                                <select
+                                                                    className="w-full text-xs p-1 rounded bg-background border border-white/10"
+                                                                    value={slot.teacher || ""}
+                                                                    onChange={(e) => handleTimetableUpdate(day, period, 'teacher', e.target.value)}
+                                                                >
+                                                                    <option value="">Teacher</option>
+                                                                    {teachers.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
+                                                                </select>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            ))}
+                                        </div>
+                                        <div className="mt-6 flex justify-end">
+                                            <Button className="neon-glow" onClick={() => toast.success("Timetable saved successfully!")}>
+                                                <Save className="w-4 h-4 mr-2" /> Save Timetable
+                                            </Button>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </Card>
                     </TabsContent>

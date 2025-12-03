@@ -23,7 +23,7 @@ const TestCreate = () => {
     };
 
     return (
-        <div className="min-h-screen p-6 bg-background space-y-8">
+        <div className="min-h-screen p-6 space-y-8">
             <motion.div
                 initial={{ opacity: 0, x: -20 }}
                 animate={{ opacity: 1, x: 0 }}

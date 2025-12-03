@@ -45,7 +45,7 @@ const Books = () => {
     },
     {
       name: "Computer Science",
-      color: "neon-blue",
+      color: "blue-500",
       materials: [
         { title: "Python Programming", type: "PDF", size: "34 MB", pages: 340, downloads: 445 },
         { title: "Data Structures", type: "PDF", size: "28 MB", pages: 285, downloads: 378 },
@@ -68,7 +68,7 @@ const Books = () => {
   ];
 
   return (
-    <div className="min-h-screen p-6 bg-background">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" onClick={() => navigate("/student")}>

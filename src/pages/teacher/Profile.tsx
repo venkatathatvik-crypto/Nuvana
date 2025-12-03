@@ -19,7 +19,7 @@ const TeacherProfile = () => {
     };
 
     return (
-        <div className="min-h-screen p-6 bg-background">
+        <div className="min-h-screen p-6">
             <div className="max-w-4xl mx-auto space-y-8">
                 <motion.div
                     initial={{ opacity: 0, y: -20 }}
@@ -105,7 +105,7 @@ const TeacherProfile = () => {
                     >
                         <Card className="glass-card p-6 h-full">
                             <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-                                <BookOpen className="w-5 h-5 text-neon-blue" /> Subjects Taught
+                                <BookOpen className="w-5 h-5 text-blue-500" /> Subjects Taught
                             </h3>
                             <div className="flex flex-wrap gap-2">
                                 {teacher.subjects.map((subject) => (

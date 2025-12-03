@@ -18,7 +18,7 @@ const Dashboard = () => {
     { label: "Attendance", value: "87%", icon: Users, color: "text-neon-cyan", path: "/student/attendance" },
     { label: "Upcoming Tests", value: "3", icon: Calendar, color: "text-neon-purple", path: "/student/events" },
     { label: "Assignments", value: "5", icon: FileText, color: "text-neon-pink", path: "/student/events" },
-    { label: "Average Marks", value: "82%", icon: Award, color: "text-neon-blue", path: "/student/marks" },
+    { label: "Average Marks", value: "82%", icon: Award, color: "text-blue-500", path: "/student/marks" },
     { label: "My Analytics", value: "View", icon: BarChart2, color: "text-green-500", path: "/student/analytics" },
   ];
 
@@ -35,7 +35,7 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen p-6 bg-background">
+    <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-8">
         <motion.div
           initial={{ opacity: 0, y: -20 }}
