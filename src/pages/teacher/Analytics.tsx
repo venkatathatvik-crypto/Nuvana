@@ -209,10 +209,6 @@ const AnalyticsDashboard = () => {
     }
 
     return (
-<<<<<<< HEAD
-        <div className="min-h-screen p-6 relative overflow-hidden">
-            <div className="absolute inset-0 bg-gradient-to-br from-background via-background to-primary/10" />
-=======
         <div className="min-h-screen p-6 bg-background space-y-8">
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
@@ -223,7 +219,7 @@ const AnalyticsDashboard = () => {
                     <h1 className="text-4xl font-bold neon-text mb-2">Analytics Dashboard 📊</h1>
                     <p className="text-muted-foreground">Deep insights into student performance</p>
                 </div>
-                <Select value={selectedClass.class_id} onValueChange={handleClassChange}>
+                <Select value={selectedClass?.class_id} onValueChange={handleClassChange}>
                     <SelectTrigger className="w-[180px]">
                         <SelectValue placeholder="Select Class" />
                     </SelectTrigger>
@@ -236,31 +232,9 @@ const AnalyticsDashboard = () => {
                     </SelectContent>
                 </Select>
             </motion.div>
->>>>>>> 702fe63626baee98b89d9f63aa98f91fb093c1c6
 
 
             <div className="relative z-10 space-y-8">
-                <motion.div
-                    initial={{ opacity: 0, y: -20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="flex justify-between items-center"
-                >
-                    <div>
-                        <h1 className="text-4xl font-bold neon-text mb-2">Analytics Dashboard 📊</h1>
-                        <p className="text-muted-foreground">Deep insights into student performance</p>
-                    </div>
-                    <Select value={selectedClass} onValueChange={setSelectedClass}>
-                        <SelectTrigger className="w-[180px]">
-                            <SelectValue placeholder="Select Class" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            <SelectItem value="Class 10A">Class 10A</SelectItem>
-                            <SelectItem value="Class 10B">Class 10B</SelectItem>
-                            <SelectItem value="Class 11A">Class 11A</SelectItem>
-                        </SelectContent>
-                    </Select>
-                </motion.div>
-
                 <Tabs defaultValue="class" className="space-y-6">
                     <TabsList className="grid w-full grid-cols-3 lg:w-[400px]">
                         <TabsTrigger value="class">Class Insights</TabsTrigger>

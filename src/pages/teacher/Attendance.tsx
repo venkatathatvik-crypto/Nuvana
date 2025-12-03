@@ -241,7 +241,7 @@ const TeacherAttendance = () => {
                 <p className="text-sm text-muted-foreground mb-2">
                   Present Today
                 </p>
-                <p className="text-4xl font-bold text-neon-cyan">
+                <p className="text-4xl font-bold text-green-500">
                   {presentCount}/{students.length}
                 </p>
               </div>
@@ -291,20 +291,18 @@ const TeacherAttendance = () => {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 + index * 0.03 }}
-                    className={`p-4 rounded-lg border transition-all ${
-                      student.present
-                        ? "bg-neon-cyan/10 border-neon-cyan/30"
+                    className={`p-4 rounded-lg border transition-all ${student.present
+                        ? "bg-green-500/10 border-green-500/30"
                         : "bg-destructive/10 border-destructive/30"
-                    }`}
+                      }`}
                   >
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4">
                         <div
-                          className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${
-                            student.present
-                              ? "bg-neon-cyan/20 text-neon-cyan"
+                          className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${student.present
+                              ? "bg-green-500/20 text-green-500"
                               : "bg-destructive/20 text-destructive"
-                          }`}
+                            }`}
                         >
                           {student.roll_number}
                         </div>
@@ -319,11 +317,10 @@ const TeacherAttendance = () => {
                       </div>
                       <div className="flex items-center gap-4">
                         <span
-                          className={`text-sm font-medium ${
-                            student.present
-                              ? "text-neon-cyan"
+                          className={`text-sm font-medium ${student.present
+                              ? "text-green-500"
                               : "text-destructive"
-                          }`}
+                            }`}
                         >
                           {student.present ? "Present" : "Absent"}
                         </span>

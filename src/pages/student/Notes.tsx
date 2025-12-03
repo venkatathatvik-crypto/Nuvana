@@ -18,58 +18,6 @@ const Notes = () => {
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [studentClassId, setStudentClassId] = useState<string | null>(null);
 
-<<<<<<< HEAD
-  const [notes] = useState([
-    {
-      id: 1,
-      title: "Mathematics - Calculus Tips",
-      content: "Remember: derivative of sin(x) is cos(x), derivative of cos(x) is -sin(x)",
-      subject: "Mathematics",
-      color: "neon-cyan",
-      date: "2024-11-28",
-    },
-    {
-      id: 2,
-      title: "Physics - Newton's Laws",
-      content: "F = ma. Remember to always identify all forces acting on the body before solving.",
-      subject: "Physics",
-      color: "neon-purple",
-      date: "2024-11-27",
-    },
-    {
-      id: 3,
-      title: "Chemistry - Organic Reactions",
-      content: "Markovnikov's rule: In addition reactions, H goes to the carbon with more H atoms",
-      subject: "Chemistry",
-      color: "neon-pink",
-      date: "2024-11-26",
-    },
-    {
-      id: 4,
-      title: "Assignment Due",
-      content: "Complete Computer Science project by Friday. Need to finish the database design.",
-      subject: "Computer Science",
-      color: "blue-500",
-      date: "2024-11-25",
-    },
-    {
-      id: 5,
-      title: "English Essay Points",
-      content: "Essay structure: Introduction (hook + thesis) → 3 body paragraphs → Conclusion",
-      subject: "English",
-      color: "text-accent",
-      date: "2024-11-24",
-    },
-    {
-      id: 6,
-      title: "Study Group Meeting",
-      content: "Physics study group tomorrow at 4 PM in library. Bring doubts from Chapter 5.",
-      subject: "General",
-      color: "text-primary",
-      date: "2024-11-23",
-    },
-  ]);
-=======
   useEffect(() => {
     const fetchStudentFiles = async () => {
       if (profileLoading) return;
@@ -103,10 +51,10 @@ const Notes = () => {
     try {
       // Increment download count
       await incrementFileDownload(file.id);
-      
+
       // Open file in new tab
       window.open(file.storageUrl, "_blank");
-      
+
       // Update local state
       setFiles((prevFiles) =>
         prevFiles.map((f) =>
@@ -118,7 +66,8 @@ const Notes = () => {
       toast.error("Failed to download file.");
     }
   };
->>>>>>> 702fe63626baee98b89d9f63aa98f91fb093c1c6
+
+
 
   const subjectColors: Record<string, string> = {
     Mathematics: "bg-neon-cyan/20 text-neon-cyan border-neon-cyan/30",
@@ -211,16 +160,16 @@ const Notes = () => {
                         <Download className="w-4 h-4" />
                       </Button>
                     </div>
-                    
+
                     <h3 className="text-lg font-semibold mb-3 line-clamp-2">{file.name}</h3>
-                    
+
                     <div className="flex flex-wrap gap-2 mb-4">
                       <Badge className={subjectColors[file.subject] || subjectColors.General}>
                         {file.subject}
                       </Badge>
                       <Badge variant="outline">{file.category}</Badge>
                     </div>
-                    
+
                     <div className="flex items-center justify-between pt-3 border-t border-border mt-auto">
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(file.uploadDate), { addSuffix: true })}

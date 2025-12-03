@@ -4,8 +4,9 @@ const generateId = () => Math.random().toString(36).substr(2, 9);
 export interface Question {
     id: string;
     text: string;
-    options: string[];
-    correctOptionIndex: number;
+    questionType: 'MCQ' | 'Essay' | 'Short Answer' | 'Very Short Answer';
+    options?: string[]; // Optional for non-MCQ questions
+    correctOptionIndex?: number; // Optional for non-MCQ questions
     marks: number;
     negativeMarks?: number;
     chapter: string;

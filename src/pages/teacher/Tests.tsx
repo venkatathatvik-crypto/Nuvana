@@ -40,31 +40,8 @@ const TeacherTests = () => {
       }
     };
 
-<<<<<<< HEAD
-    return (
-        <div className="min-h-screen p-6 space-y-8">
-            <motion.div
-                initial={{ opacity: 0, y: -20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="flex justify-between items-center"
-            >
-                <div>
-                    <h1 className="text-4xl font-bold neon-text mb-2">Manage Tests 📝</h1>
-                    <p className="text-muted-foreground">Create and manage MCQ assessments</p>
-                </div>
-                <div className="flex gap-4">
-                    <Button variant="outline" onClick={() => navigate("/teacher")}>
-                        Back to Dashboard
-                    </Button>
-                    <Button onClick={() => navigate("/teacher/tests/create")} className="gap-2">
-                        <Plus className="w-4 h-4" /> Create New Test
-                    </Button>
-                </div>
-            </motion.div>
-=======
     fetchTests();
   }, [profile, profileLoading]);
->>>>>>> 702fe63626baee98b89d9f63aa98f91fb093c1c6
 
   const handleDelete = async (id: string) => {
     if (!profile) return;

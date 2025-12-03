@@ -47,8 +47,7 @@ const Index = () => {
           />
         </div>
         <p className="text-xl md:text-2xl text-muted-foreground max-w-2xl mx-auto">
-          Your complete 360° academic companion for learning, teaching, and
-          thriving
+          Digital Learning,Zero Infrastructure.
         </p>
       </motion.div>
 
@@ -65,13 +64,13 @@ const Index = () => {
           onClick={() => navigate("/login")}
         >
           <div className="flex flex-col items-center text-center space-y-4">
-            <BookOpen className="w-16 h-16 text-neon-cyan group-hover:scale-110 transition-transform" />
+            <BookOpen className="w-16 h-16 text-neon-purple group-hover:scale-110 transition-transform" />
             <h2 className="text-3xl font-bold">Student Mode</h2>
             <p className="text-muted-foreground">
               Access your personalized dashboard with attendance, marks,
               timetable, books, and more
             </p>
-            <Button className="w-full mt-4" size="lg">
+            <Button className="w-full mt-4" size="lg" variant="secondary">
               Enter as Student
             </Button>
           </div>

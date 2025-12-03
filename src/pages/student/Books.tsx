@@ -18,65 +18,6 @@ const Books = () => {
   const [loadingFiles, setLoadingFiles] = useState(true);
   const [studentClassId, setStudentClassId] = useState<string | null>(null);
 
-<<<<<<< HEAD
-  const subjects = [
-    {
-      name: "Mathematics",
-      color: "neon-cyan",
-      materials: [
-        { title: "Textbook - Class 12", type: "PDF", size: "45 MB", pages: 420, downloads: 234 },
-        { title: "Reference Book - R.D. Sharma", type: "PDF", size: "78 MB", pages: 680, downloads: 456 },
-        { title: "Formula Sheet", type: "PDF", size: "2 MB", pages: 15, downloads: 892 },
-        { title: "Previous Year Papers", type: "PDF", size: "12 MB", pages: 85, downloads: 567 },
-        { title: "Practice Problems", type: "PDF", size: "8 MB", pages: 120, downloads: 345 },
-      ]
-    },
-    {
-      name: "Physics",
-      color: "neon-purple",
-      materials: [
-        { title: "NCERT Physics Part 1", type: "PDF", size: "38 MB", pages: 380, downloads: 198 },
-        { title: "NCERT Physics Part 2", type: "PDF", size: "42 MB", pages: 410, downloads: 187 },
-        { title: "H.C. Verma - Concepts", type: "PDF", size: "92 MB", pages: 750, downloads: 412 },
-        { title: "Lab Manual", type: "PDF", size: "18 MB", pages: 145, downloads: 289 },
-        { title: "Important Numericals", type: "PDF", size: "6 MB", pages: 68, downloads: 523 },
-      ]
-    },
-    {
-      name: "Chemistry",
-      color: "neon-pink",
-      materials: [
-        { title: "Organic Chemistry", type: "PDF", size: "56 MB", pages: 520, downloads: 267 },
-        { title: "Inorganic Chemistry", type: "PDF", size: "48 MB", pages: 460, downloads: 245 },
-        { title: "Physical Chemistry", type: "PDF", size: "52 MB", pages: 490, downloads: 256 },
-        { title: "Reaction Mechanisms", type: "PDF", size: "15 MB", pages: 98, downloads: 389 },
-        { title: "Periodic Table Guide", type: "PDF", size: "3 MB", pages: 24, downloads: 678 },
-      ]
-    },
-    {
-      name: "Computer Science",
-      color: "blue-500",
-      materials: [
-        { title: "Python Programming", type: "PDF", size: "34 MB", pages: 340, downloads: 445 },
-        { title: "Data Structures", type: "PDF", size: "28 MB", pages: 285, downloads: 378 },
-        { title: "Database Management", type: "PDF", size: "22 MB", pages: 220, downloads: 312 },
-        { title: "Computer Networks", type: "PDF", size: "26 MB", pages: 268, downloads: 289 },
-        { title: "Programming Projects", type: "PDF", size: "12 MB", pages: 95, downloads: 501 },
-      ]
-    },
-    {
-      name: "English",
-      color: "text-accent",
-      materials: [
-        { title: "Literature Textbook", type: "PDF", size: "32 MB", pages: 310, downloads: 176 },
-        { title: "Grammar Guide", type: "PDF", size: "18 MB", pages: 165, downloads: 423 },
-        { title: "Essay Writing Tips", type: "PDF", size: "5 MB", pages: 42, downloads: 589 },
-        { title: "Poetry Analysis", type: "PDF", size: "8 MB", pages: 78, downloads: 267 },
-        { title: "Sample Papers", type: "PDF", size: "10 MB", pages: 92, downloads: 445 },
-      ]
-    },
-  ];
-=======
   useEffect(() => {
     const fetchStudentBooks = async () => {
       if (profileLoading) return;
@@ -119,7 +60,7 @@ const Books = () => {
     if (files.length === 0) return [];
 
     const groupedBySubject: Record<string, any[]> = {};
-    
+
     files.forEach((file) => {
       const subjectName = file.subject || "Other";
       if (!groupedBySubject[subjectName]) {
@@ -147,17 +88,17 @@ const Books = () => {
     try {
       // Increment download count
       await incrementFileDownload(file.id);
-      
+
       // Open file in new tab
       window.open(file.storageUrl, "_blank");
-      
+
       // Update local state
       setFiles((prevFiles) =>
         prevFiles.map((f) =>
           f.id === file.id ? { ...f, downloads: f.downloads + 1 } : f
         )
       );
-      
+
       toast.success("File downloaded successfully");
     } catch (error) {
       console.error("Error downloading file:", error);
@@ -168,7 +109,6 @@ const Books = () => {
   const handleView = (file: any) => {
     window.open(file.storageUrl, "_blank");
   };
->>>>>>> 702fe63626baee98b89d9f63aa98f91fb093c1c6
 
   return (
     <div className="min-h-screen p-6">
@@ -272,17 +212,17 @@ const Books = () => {
                             </div>
                           </div>
                           <div className="flex gap-2">
-                            <Button 
-                              variant="outline" 
-                              size="sm" 
+                            <Button
+                              variant="outline"
+                              size="sm"
                               className="glass"
                               onClick={() => handleView(material)}
                             >
                               <Eye className="w-4 h-4 mr-2" />
                               View
                             </Button>
-                            <Button 
-                              size="sm" 
+                            <Button
+                              size="sm"
                               className="neon-glow"
                               onClick={() => handleDownload(material)}
                             >
