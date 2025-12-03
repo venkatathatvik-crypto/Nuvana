@@ -15,12 +15,37 @@ import {
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
-
+import { useEffect, useState } from "react";
 import { useAuth } from "@/auth/AuthContext";
+import { getTeacherClasses } from "@/services/academic";
+import { FlattenedClass } from "@/schemas/academic";
 
 const TeacherDashboard = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, profile } = useAuth();
+  const [classes, setClasses] = useState<FlattenedClass[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchClasses = async () => {
+      if (!profile?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        const teacherClasses = await getTeacherClasses(profile.id);
+        setClasses(teacherClasses);
+      } catch (error) {
+        console.error("Error fetching teacher classes:", error);
+        setClasses([]);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchClasses();
+  }, [profile?.id]);
 
   const handleLogout = async () => {
     await logout();
@@ -37,12 +62,6 @@ const TeacherDashboard = () => {
     { label: "Voice Upload", icon: Mic, color: "text-neon-pink", path: "/teacher/voice-upload" },
     { label: "Admin Panel", icon: Shield, color: "text-neon-purple", path: "/teacher/admin" },
     { label: "My Tasks", icon: CheckSquare, color: "text-neon-cyan", path: "/teacher/tasks" },
-  ];
-
-  const classStats = [
-    { class: "Class 10A", students: 45, avgAttendance: "92%" },
-    { class: "Class 10B", students: 42, avgAttendance: "89%" },
-    { class: "Class 11A", students: 38, avgAttendance: "94%" },
   ];
 
   const recentActivity = [
@@ -98,6 +117,7 @@ const TeacherDashboard = () => {
                 <h2 className="text-2xl font-semibold">Class Overview</h2>
               </div>
               <div className="space-y-4">
+<<<<<<< HEAD
                 {classStats.map((cls, index) => (
                   <div key={index} className="p-4 rounded-lg bg-muted/50 border border-border hover:border-primary transition-colors">
                     <div className="flex justify-between items-center">
@@ -110,8 +130,47 @@ const TeacherDashboard = () => {
                         <p className="text-xs text-muted-foreground">Avg Attendance</p>
                       </div>
                     </div>
+=======
+                {loading ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    Loading classes...
+                  </p>
+                ) : null}
+                {!loading && classes.length > 0 ? (
+                  <div className="space-y-4">
+                    {classes.map((cls) => (
+                      <div
+                        key={cls.class_id}
+                        className="p-4 rounded-lg bg-muted/50 border border-border hover:border-primary transition-colors"
+                      >
+                        <div className="flex justify-between items-center">
+                          <div>
+                            <h3 className="font-semibold text-lg">
+                              {cls.class_name}
+                            </h3>
+                            <p className="text-sm text-muted-foreground mt-1">
+                              {/* Blank as per requirement */}
+                            </p>
+                          </div>
+                          <div className="text-right">
+                            <p className="text-2xl font-bold text-primary">
+                              {/* Blank as per requirement */}
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                              {/* Blank as per requirement */}
+                            </p>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+>>>>>>> 702fe63626baee98b89d9f63aa98f91fb093c1c6
                   </div>
-                ))}
+                ) : null}
+                {!loading && classes.length === 0 ? (
+                  <p className="text-muted-foreground text-center py-8">
+                    No classes assigned yet.
+                  </p>
+                ) : null}
               </div>
             </Card>
           </motion.div>
@@ -123,8 +182,16 @@ const TeacherDashboard = () => {
                 <h2 className="text-2xl font-semibold">Recent Activity</h2>
               </div>
               <div className="space-y-4">
+<<<<<<< HEAD
                 {recentActivity.map((activity, index) => (
                   <div key={index} className="p-4 rounded-lg bg-muted/50 border border-border hover:border-primary transition-colors">
+=======
+                {recentActivity.map((activity) => (
+                  <div
+                    key={activity.action}
+                    className="p-4 rounded-lg bg-muted/50 border border-border hover:border-primary transition-colors"
+                  >
+>>>>>>> 702fe63626baee98b89d9f63aa98f91fb093c1c6
                     <p className="font-medium">{activity.action}</p>
                     <p className="text-xs text-muted-foreground mt-2">{activity.time}</p>
                   </div>

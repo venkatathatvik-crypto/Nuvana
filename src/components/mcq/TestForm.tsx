@@ -27,7 +27,8 @@ import {
 import { toast } from "sonner";
 import { Test, Question } from "@/lib/mcq-store";
 import { motion, Reorder } from "framer-motion";
-import { getClasses, getExamTypes, getSubjects, FlattenedClass } from "@/services/academic";
+import { getTeacherClasses, getExamTypes, getSubjects, FlattenedClass } from "@/services/academic";
+import { useAuth } from "@/auth/AuthContext";
 
 const questionSchema = z.object({
     id: z.string().optional(),
@@ -57,13 +58,14 @@ interface TestFormProps {
 }
 
 export const TestForm = ({ initialData, onSubmit }: TestFormProps) => {
+    const { profile, profileLoading } = useAuth();
     const [classes, setClasses] = useState<FlattenedClass[]>([]);
     const [examTypes, setExamTypes] = useState<string[]>([]);
     const [subjects, setSubjects] = useState<string[]>([]);
 
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
-        defaultValues: initialData || {
+        defaultValues: {
             title: "",
             description: "",
             durationMinutes: 30,
@@ -82,20 +84,79 @@ export const TestForm = ({ initialData, onSubmit }: TestFormProps) => {
 
     useEffect(() => {
         const fetchInitialData = async () => {
+            if (profileLoading) return;
+
+            if (!profile) {
+                toast.error("Please login to create tests");
+                return;
+            }
+
             try {
                 const [classesData, examTypesData] = await Promise.all([
-                    getClasses(),
+                    getTeacherClasses(profile.id),
                     getExamTypes()
                 ]);
                 setClasses(classesData || []);
                 setExamTypes(examTypesData || []);
+                
+                // If we have initialData (editing mode), reset form with initialData after classes/examTypes are loaded
+                if (initialData) {
+                    const initialClassId = (initialData as any).classId || "";
+                    const initialSubject = (initialData as any).subject || "";
+                    const initialExamType = (initialData as any).examType || "";
+                    
+                    // Reset form with initial data
+                    form.reset({
+                        title: initialData.title || "",
+                        description: initialData.description || "",
+                        durationMinutes: initialData.durationMinutes || 30,
+                        isPublished: initialData.isPublished || false,
+                        classId: initialClassId,
+                        subject: initialSubject,
+                        examType: initialExamType,
+                        questions: initialData.questions?.map(q => ({
+                            id: q.id,
+                            text: q.text,
+                            options: q.options || [],
+                            correctOptionIndex: q.correctOptionIndex,
+                            marks: q.marks,
+                            chapter: q.chapter || "",
+                            topic: q.topic || "",
+                        })) || [],
+                    });
+                    
+                    // If we have a classId, fetch subjects for that class
+                    if (initialClassId && classesData) {
+                        const selectedClass = classesData.find(c => c.class_id === initialClassId);
+                        if (selectedClass) {
+                            try {
+                                const subjectsData = await getSubjects(selectedClass.grade_id);
+                                setSubjects(subjectsData || []);
+                                // Subject will be set by the selectedClassId useEffect
+                            } catch (error) {
+                                console.error("Failed to fetch subjects for initial class", error);
+                            }
+                        }
+                    }
+                } else {
+                    // Set default class if available and form doesn't have one (create mode)
+                    if (classesData && classesData.length > 0 && !form.getValues("classId")) {
+                        form.setValue("classId", classesData[0].class_id);
+                    }
+                    
+                    // Set default exam type if available
+                    if (examTypesData && examTypesData.length > 0 && !form.getValues("examType")) {
+                        form.setValue("examType", examTypesData[0]);
+                    }
+                }
+                
             } catch (error) {
                 console.error("Failed to fetch initial data", error);
                 toast.error("Failed to load form data");
             }
         };
         fetchInitialData();
-    }, []);
+    }, [profile, profileLoading, initialData, form]);
 
     const selectedClassId = form.watch("classId");
 
@@ -110,14 +171,31 @@ export const TestForm = ({ initialData, onSubmit }: TestFormProps) => {
                 try {
                     const subjectsData = await getSubjects(selectedClass.grade_id);
                     setSubjects(subjectsData || []);
+                    
+                    // If we have initialData and it has a subject, use that (for editing)
+                    // Otherwise set default subject if available and form doesn't have one
+                    if (initialData && (initialData as any).subject) {
+                        // Check if the subject from initialData exists in the fetched subjects
+                        const initialSubject = (initialData as any).subject;
+                        if (subjectsData && subjectsData.includes(initialSubject)) {
+                            form.setValue("subject", initialSubject);
+                        } else if (subjectsData && subjectsData.length > 0) {
+                            form.setValue("subject", subjectsData[0]);
+                        }
+                    } else if (subjectsData && subjectsData.length > 0 && !form.getValues("subject")) {
+                        form.setValue("subject", subjectsData[0]);
+                    }
                 } catch (error) {
                     console.error("Failed to fetch subjects", error);
                     toast.error("Failed to load subjects");
+                    setSubjects([]);
                 }
+            } else {
+                setSubjects([]);
             }
         };
         fetchSubjectsForClass();
-    }, [selectedClassId, classes]);
+    }, [selectedClassId, classes, initialData, form]);
 
     const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
         const file = event.target.files?.[0];
