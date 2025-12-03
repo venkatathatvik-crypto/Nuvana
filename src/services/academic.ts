@@ -15,13 +15,13 @@ interface TeacherClassRow {
 interface GradeSubjectRow {
   id: string;
   subjects_master:
-  | {
-    name: string;
-  }
-  | {
-    name: string;
-  }[]
-  | null;
+    | {
+        name: string;
+      }
+    | {
+        name: string;
+      }[]
+    | null;
 }
 
 const FILES_BUCKET =
@@ -80,13 +80,13 @@ interface TeacherFileRow {
   file_categories: NamedEntity | NamedEntity[] | null;
   classes: NamedEntity | NamedEntity[] | null;
   grade_subjects:
-  | {
-    subjects_master: NamedEntity | NamedEntity[] | null;
-  }
-  | {
-    subjects_master: NamedEntity | NamedEntity[] | null;
-  }[]
-  | null;
+    | {
+        subjects_master: NamedEntity | NamedEntity[] | null;
+      }
+    | {
+        subjects_master: NamedEntity | NamedEntity[] | null;
+      }[]
+    | null;
 }
 
 interface StoragePathRow {
@@ -854,6 +854,67 @@ export const getStudentFiles = async (
   }
 
   return data.map((record) => mapFileRecordToItem(record as TeacherFileRow));
+};
+
+// Get voice notes by class_id for students
+export interface StudentVoiceNote {
+  id: string;
+  title: string;
+  storageUrl: string;
+  duration: number;
+  fileSize: number;
+  subject: string;
+  gradeSubjectId: string;
+  uploadDate: string;
+}
+
+export const getStudentVoiceNotes = async (
+  classId: string
+): Promise<StudentVoiceNote[]> => {
+  const { data, error } = await supabase
+    .from("voice_notes")
+    .select(
+      `
+      id,
+      title,
+      storage_url,
+      duration_seconds,
+      file_size_bytes,
+      grade_subject_id,
+      created_at,
+      grade_subjects (
+        subjects_master ( name )
+      )
+    `
+    )
+    .eq("class_id", classId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching student voice notes:", error);
+    throw new Error("Failed to load voice notes.");
+  }
+
+  if (!data) {
+    return [];
+  }
+
+  return data.map((record: any) => {
+    const subjectMaster = Array.isArray(record.grade_subjects?.subjects_master)
+      ? record.grade_subjects.subjects_master[0]
+      : record.grade_subjects?.subjects_master;
+
+    return {
+      id: record.id,
+      title: record.title,
+      storageUrl: record.storage_url,
+      duration: record.duration_seconds || 0,
+      fileSize: record.file_size_bytes || 0,
+      subject: subjectMaster?.name || "General",
+      gradeSubjectId: record.grade_subject_id,
+      uploadDate: record.created_at,
+    };
+  });
 };
 
 // Get announcements filtered by class_id for students
@@ -1810,16 +1871,17 @@ export const getAttendanceForDate = async (
 
 // Save attendance records for a date
 export const saveAttendance = async (
-  classId: string,
   attendanceDate: string,
   students: StudentAttendance[],
   teacherId: string
 ): Promise<void> => {
-  // Delete existing attendance records for this date (to avoid duplicates)
+  // Delete existing attendance records for the specific students on this date (to avoid duplicates)
+  const studentIds = students.map((s) => s.id);
   const { error: deleteError } = await supabase
     .from("attendance")
     .delete()
-    .eq("attendance_date", attendanceDate);
+    .eq("attendance_date", attendanceDate)
+    .in("student_id", studentIds);
 
   if (deleteError) {
     console.error("Error clearing old attendance:", deleteError);
@@ -1842,5 +1904,173 @@ export const saveAttendance = async (
   if (insertError) {
     console.error("Error saving attendance records:", insertError);
     throw new Error("Failed to save attendance records.");
+  }
+};
+
+// Get student attendance statistics by subject
+export const getStudentAttendanceBySubject = async (
+  studentId: string
+): Promise<
+  Array<{
+    subject: string;
+    present: number;
+    total: number;
+    percentage: number;
+    trend: "up" | "down";
+    recentClasses: Array<{ date: string; status: "present" | "absent" }>;
+  }>
+> => {
+  try {
+    // First get student's class and grade level
+    const { data: studentData, error: studentError } = await supabase
+      .from("students")
+      .select(
+        `
+        class_id,
+        classes (
+          grade_level_id
+        )
+      `
+      )
+      .eq("id", studentId)
+      .single();
+
+    if (studentError) {
+      console.error("Error fetching student info:", studentError);
+      return [];
+    }
+
+    if (!studentData) {
+      return [];
+    }
+
+    const classData = Array.isArray(studentData.classes)
+      ? studentData.classes[0]
+      : studentData.classes;
+    const gradeLevel = classData?.grade_level_id;
+
+    // Get all subjects for this grade level
+    const { data: gradeSubjects, error: subjectsError } = await supabase
+      .from("grade_subjects")
+      .select(
+        `
+        id,
+        subjects_master (
+          name
+        )
+      `
+      )
+      .eq("grade_level_id", gradeLevel);
+
+    if (subjectsError) {
+      console.error("Error fetching subjects:", subjectsError);
+      return [];
+    }
+
+    if (!gradeSubjects) {
+      return [];
+    }
+
+    // Fetch attendance for all dates for this student
+    const { data: attendanceData, error: attendanceError } = await supabase
+      .from("attendance")
+      .select("attendance_date, status")
+      .eq("student_id", studentId)
+      .order("attendance_date", { ascending: false });
+
+    if (attendanceError) {
+      console.error("Error fetching attendance:", attendanceError);
+      return [];
+    }
+
+    // Process each subject
+    const subjectAttendance = gradeSubjects.map(
+      (gs: {
+        id: string;
+        subjects_master: NamedEntity | NamedEntity[] | null;
+      }) => {
+        const subjectMaster = Array.isArray(gs.subjects_master)
+          ? gs.subjects_master[0]
+          : gs.subjects_master;
+        const subjectName = subjectMaster?.name || "Unknown Subject";
+
+        const totalRecords = attendanceData?.length || 0;
+        const presentRecords =
+          attendanceData?.filter((a) => a.status === "present").length || 0;
+
+        const percentage =
+          totalRecords > 0 ? (presentRecords / totalRecords) * 100 : 0;
+
+        // Get recent 5 classes
+        const recentClasses = (attendanceData || [])
+          .slice(0, 5)
+          .map((record) => ({
+            date: record.attendance_date,
+            status: record.status as "present" | "absent",
+          }));
+
+        // Determine trend (compare first 50% vs last 50%)
+        const midpoint = Math.floor((attendanceData?.length || 0) / 2);
+        const firstHalf = (attendanceData || [])
+          .slice(0, midpoint)
+          .filter((a) => a.status === "present").length;
+        const secondHalf = (attendanceData || [])
+          .slice(midpoint)
+          .filter((a) => a.status === "present").length;
+
+        const firstHalfPercentage =
+          midpoint > 0 ? (firstHalf / midpoint) * 100 : 0;
+        const secondHalfPercentage =
+          attendanceData && attendanceData.length - midpoint > 0
+            ? (secondHalf / (attendanceData.length - midpoint)) * 100
+            : 0;
+
+        const trend: "up" | "down" =
+          secondHalfPercentage >= firstHalfPercentage ? "up" : "down";
+
+        return {
+          subject: subjectName,
+          present: presentRecords,
+          total: totalRecords,
+          percentage: Number.isNaN(percentage) ? 0 : percentage,
+          trend,
+          recentClasses,
+        };
+      }
+    );
+
+    return subjectAttendance;
+  } catch (error) {
+    console.error("Error in getStudentAttendanceBySubject:", error);
+    return [];
+  }
+};
+
+// Get overall student attendance percentage
+export const getOverallAttendancePercentage = async (
+  studentId: string
+): Promise<number> => {
+  try {
+    const { data, error } = await supabase
+      .from("attendance")
+      .select("status")
+      .eq("student_id", studentId);
+
+    if (error) {
+      console.error("Error fetching overall attendance:", error);
+      return 0;
+    }
+
+    if (!data || data.length === 0) {
+      return 0;
+    }
+
+    const presentCount = data.filter((a) => a.status === "present").length;
+    const percentage = (presentCount / data.length) * 100;
+
+    return Number.isNaN(percentage) ? 0 : percentage;
+  } catch (error) {
+    console.error("Error in getOverallAttendancePercentage:", error);
+    return 0;
   }
 };
