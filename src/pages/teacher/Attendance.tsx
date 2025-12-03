@@ -6,7 +6,13 @@ import { useNavigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { toast } from "sonner";
-import { getTeacherClasses } from "@/services/academic";
+import {
+  getTeacherClasses,
+  getStudentsByClass,
+  getAttendanceForDate,
+  saveAttendance,
+  type StudentAttendance,
+} from "@/services/academic";
 import type { FlattenedClass } from "@/schemas/academic";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useAuth } from "@/auth/AuthContext";
@@ -21,19 +27,10 @@ const TeacherAttendance = () => {
   );
   const [selectedDate] = useState(new Date().toISOString().split("T")[0]);
   const [loading, setLoading] = useState(true);
+  const [studentsLoading, setStudentsLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
-  const [students, setStudents] = useState([
-    { id: 1, name: "John Smith", rollNo: "101", present: true },
-    { id: 2, name: "Emma Johnson", rollNo: "102", present: true },
-    { id: 3, name: "Michael Brown", rollNo: "103", present: false },
-    { id: 4, name: "Sophia Davis", rollNo: "104", present: true },
-    { id: 5, name: "William Wilson", rollNo: "105", present: true },
-    { id: 6, name: "Olivia Martinez", rollNo: "106", present: false },
-    { id: 7, name: "James Anderson", rollNo: "107", present: true },
-    { id: 8, name: "Isabella Taylor", rollNo: "108", present: true },
-    { id: 9, name: "Benjamin Thomas", rollNo: "109", present: true },
-    { id: 10, name: "Mia Garcia", rollNo: "110", present: false },
-  ]);
+  const [students, setStudents] = useState<StudentAttendance[]>([]);
 
   // Load classes dynamically for the logged-in teacher
   useEffect(() => {
@@ -69,6 +66,44 @@ const TeacherAttendance = () => {
     fetchClasses();
   }, [profile, profileLoading]);
 
+  // Load students when class is selected
+  useEffect(() => {
+    const fetchStudents = async () => {
+      if (!selectedClass) {
+        setStudents([]);
+        return;
+      }
+
+      setStudentsLoading(true);
+      try {
+        // Fetch students from the selected class
+        const studentsData = await getStudentsByClass(selectedClass.class_id);
+
+        // Fetch existing attendance records for today
+        const attendanceMap = await getAttendanceForDate(
+          selectedClass.class_id,
+          selectedDate
+        );
+
+        // Merge attendance data with students
+        const mergedStudents = studentsData.map((student) => ({
+          ...student,
+          present: attendanceMap[student.id] ?? false,
+        }));
+
+        setStudents(mergedStudents);
+      } catch (error) {
+        console.error("Error fetching students:", error);
+        toast.error("Failed to load students for selected class.");
+        setStudents([]);
+      } finally {
+        setStudentsLoading(false);
+      }
+    };
+
+    fetchStudents();
+  }, [selectedClass, selectedDate]);
+
   const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const classId = e.target.value;
     const cls = classes.find((c) => c.class_id === classId);
@@ -77,7 +112,7 @@ const TeacherAttendance = () => {
     }
   };
 
-  const toggleAttendance = (studentId: number) => {
+  const toggleAttendance = (studentId: string) => {
     setStudents(
       students.map((student) =>
         student.id === studentId
@@ -97,11 +132,30 @@ const TeacherAttendance = () => {
     toast.success("Marked all students absent");
   };
 
-  const submitAttendance = () => {
-    const presentCount = students.filter((s) => s.present).length;
-    toast.success(
-      `Attendance submitted! ${presentCount}/${students.length} students present`
-    );
+  const submitAttendance = async () => {
+    if (!selectedClass || !profile) {
+      toast.error("Missing class or profile information");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await saveAttendance(
+        selectedClass.class_id,
+        selectedDate,
+        students,
+        profile.id
+      );
+      const presentCount = students.filter((s) => s.present).length;
+      toast.success(
+        `Attendance submitted! ${presentCount}/${students.length} students present`
+      );
+    } catch (error) {
+      console.error("Error submitting attendance:", error);
+      toast.error("Failed to submit attendance. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const presentCount = students.filter((s) => s.present).length;
@@ -149,10 +203,14 @@ const TeacherAttendance = () => {
           <Card className="glass-card p-6">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
               <div>
-                <label className="text-sm text-muted-foreground mb-2 block">
+                <label
+                  htmlFor="class-select"
+                  className="text-sm text-muted-foreground mb-2 block"
+                >
                   Select Class
                 </label>
                 <select
+                  id="class-select"
                   className="w-full p-3 rounded-lg bg-muted border border-border"
                   value={selectedClass.class_id}
                   onChange={handleClassChange}
@@ -165,10 +223,16 @@ const TeacherAttendance = () => {
                 </select>
               </div>
               <div>
-                <label className="text-sm text-muted-foreground mb-2 block">
+                <label
+                  htmlFor="date-display"
+                  className="text-sm text-muted-foreground mb-2 block"
+                >
                   Date
                 </label>
-                <div className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border">
+                <div
+                  id="date-display"
+                  className="flex items-center gap-2 p-3 rounded-lg bg-muted border border-border"
+                >
                   <Calendar className="w-5 h-5 text-primary" />
                   <span>{selectedDate}</span>
                 </div>
@@ -213,59 +277,73 @@ const TeacherAttendance = () => {
               Students - {selectedClass.class_name}
             </h2>
 
-            <div className="space-y-3">
-              {students.map((student, index) => (
-                <motion.div
-                  key={student.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.3 + index * 0.03 }}
-                  className={`p-4 rounded-lg border transition-all ${
-                    student.present
-                      ? "bg-neon-cyan/10 border-neon-cyan/30"
-                      : "bg-destructive/10 border-destructive/30"
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      <div
-                        className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${
-                          student.present
-                            ? "bg-neon-cyan/20 text-neon-cyan"
-                            : "bg-destructive/20 text-destructive"
-                        }`}
-                      >
-                        {student.rollNo}
+            {studentsLoading && (
+              <div className="flex items-center justify-center py-12">
+                <LoadingSpinner />
+              </div>
+            )}
+
+            {!studentsLoading && students.length > 0 && (
+              <div className="space-y-3">
+                {students.map((student, index) => (
+                  <motion.div
+                    key={student.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.3 + index * 0.03 }}
+                    className={`p-4 rounded-lg border transition-all ${
+                      student.present
+                        ? "bg-neon-cyan/10 border-neon-cyan/30"
+                        : "bg-destructive/10 border-destructive/30"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        <div
+                          className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${
+                            student.present
+                              ? "bg-neon-cyan/20 text-neon-cyan"
+                              : "bg-destructive/20 text-destructive"
+                          }`}
+                        >
+                          {student.roll_number}
+                        </div>
+                        <div>
+                          <h3 className="font-semibold text-lg">
+                            {student.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            Roll No: {student.roll_number}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <h3 className="font-semibold text-lg">
-                          {student.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Roll No: {student.rollNo}
-                        </p>
+                      <div className="flex items-center gap-4">
+                        <span
+                          className={`text-sm font-medium ${
+                            student.present
+                              ? "text-neon-cyan"
+                              : "text-destructive"
+                          }`}
+                        >
+                          {student.present ? "Present" : "Absent"}
+                        </span>
+                        <Checkbox
+                          checked={student.present}
+                          onCheckedChange={() => toggleAttendance(student.id)}
+                          className="h-6 w-6"
+                        />
                       </div>
                     </div>
-                    <div className="flex items-center gap-4">
-                      <span
-                        className={`text-sm font-medium ${
-                          student.present
-                            ? "text-neon-cyan"
-                            : "text-destructive"
-                        }`}
-                      >
-                        {student.present ? "Present" : "Absent"}
-                      </span>
-                      <Checkbox
-                        checked={student.present}
-                        onCheckedChange={() => toggleAttendance(student.id)}
-                        className="h-6 w-6"
-                      />
-                    </div>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
+                  </motion.div>
+                ))}
+              </div>
+            )}
+
+            {!studentsLoading && students.length === 0 && (
+              <div className="text-center py-12 text-muted-foreground">
+                <p>No students found in this class.</p>
+              </div>
+            )}
           </Card>
         </motion.div>
 
@@ -274,8 +352,9 @@ const TeacherAttendance = () => {
             size="lg"
             className="neon-glow px-8"
             onClick={submitAttendance}
+            disabled={submitting || students.length === 0}
           >
-            Submit Attendance
+            {submitting ? "Submitting..." : "Submit Attendance"}
           </Button>
         </div>
       </div>

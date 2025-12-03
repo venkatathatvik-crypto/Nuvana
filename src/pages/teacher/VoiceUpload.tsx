@@ -56,6 +56,9 @@ const VoiceUpload = () => {
   const [playingVoiceNoteId, setPlayingVoiceNoteId] = useState<string | null>(
     null
   );
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadedFileUrl, setUploadedFileUrl] = useState<string | null>(null);
+  const [uploadedFileName, setUploadedFileName] = useState<string>("");
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   // Dropdown states
@@ -310,81 +313,115 @@ const VoiceUpload = () => {
     }
   };
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>
-  ) => {
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    if (!file.type.startsWith("audio/")) {
-      toast.error("Please select an audio file");
+    if (!selectedClass || !selectedSubject) {
+      toast.error("Please select a class and subject first");
+      event.target.value = "";
       return;
     }
 
-    if (!selectedClass || !selectedSubject || !profile) {
-      toast.error("Please select a class and subject first");
+    // Store the file without uploading
+    setUploadedFile(file);
+    setUploadedFileName(file.name.replace(/\.[^/.]+$/, ""));
+    const fileUrl = URL.createObjectURL(file);
+    setUploadedFileUrl(fileUrl);
+  };
+
+  const handleUploadFile = async () => {
+    if (!uploadedFile || !selectedClass || !selectedSubject || !profile) {
+      toast.error(
+        "Please ensure class, subject are selected and file is ready"
+      );
       return;
     }
 
     setIsUploading(true);
+
     try {
-      // Get audio duration
-      const audio = new Audio(URL.createObjectURL(file));
-      let durationSeconds = 0;
+      // Get audio duration using Promise
+      const audio = new Audio(URL.createObjectURL(uploadedFile));
 
-      audio.addEventListener("loadedmetadata", async () => {
-        durationSeconds = Math.floor(audio.duration);
+      const durationPromise = new Promise<number>((resolve) => {
+        const handleMetadata = () => {
+          const duration = Math.floor(audio.duration);
+          audio.removeEventListener("loadedmetadata", handleMetadata);
+          audio.removeEventListener("error", handleError);
+          resolve(duration);
+        };
 
-        // Convert subject name to grade_subject_id
-        const gradeSubjectId = await getGradeSubjectIdBySubjectName(
-          selectedClass!.class_id,
-          selectedSubject
-        );
+        const handleError = () => {
+          audio.removeEventListener("loadedmetadata", handleMetadata);
+          audio.removeEventListener("error", handleError);
+          resolve(0); // Default to 0 if we can't get duration
+        };
 
-        if (!gradeSubjectId) {
-          toast.error("Failed to find subject. Please try again.");
-          setIsUploading(false);
-          return;
-        }
-
-        const title =
-          recordingTitle.trim() ||
-          file.name.replace(/\.[^/.]+$/, "") ||
-          `${selectedSubject} - Upload ${new Date().toLocaleTimeString()}`;
-
-        try {
-          const newVoiceNote = await uploadTeacherVoiceNote({
-            file,
-            title,
-            classId: selectedClass!.class_id,
-            gradeSubjectId,
-            teacherId: profile!.id,
-            durationSeconds,
-          });
-
-          setRecordings([newVoiceNote, ...recordings]);
-          setRecordingTitle(""); // Clear title after upload
-          toast.success("Voice note uploaded successfully!");
-        } catch (error: any) {
-          console.error("Error uploading voice note:", error);
-          toast.error(error.message || "Failed to upload voice note.");
-        } finally {
-          setIsUploading(false);
-        }
+        audio.addEventListener("loadedmetadata", handleMetadata);
+        audio.addEventListener("error", handleError);
       });
 
-      audio.addEventListener("error", () => {
-        // If we can't get duration, use 0
-        durationSeconds = 0;
+      const durationSeconds = await durationPromise;
+
+      // Convert subject name to grade_subject_id
+      const gradeSubjectId = await getGradeSubjectIdBySubjectName(
+        selectedClass.class_id,
+        selectedSubject
+      );
+
+      if (!gradeSubjectId) {
+        toast.error("Failed to find subject. Please try again.");
+        setIsUploading(false);
+        return;
+      }
+
+      const title =
+        recordingTitle.trim() ||
+        uploadedFileName ||
+        `${selectedSubject} - Upload ${new Date().toLocaleTimeString()}`;
+
+      const newVoiceNote = await uploadTeacherVoiceNote({
+        file: uploadedFile,
+        title,
+        classId: selectedClass.class_id,
+        gradeSubjectId,
+        teacherId: profile.id,
+        durationSeconds,
       });
+
+      setRecordings([newVoiceNote, ...recordings]);
+      setRecordingTitle(""); // Clear title after upload
+      setUploadedFile(null);
+      setUploadedFileUrl(null);
+      setUploadedFileName("");
+
+      // Reset file input
+      const fileInput = document.querySelector(
+        'input[type="file"]'
+      ) as HTMLInputElement;
+      if (fileInput) fileInput.value = "";
+
+      toast.success("Voice note uploaded successfully!");
     } catch (error: any) {
-      console.error("Error processing file:", error);
-      toast.error("Failed to process audio file.");
+      console.error("Error uploading voice note:", error);
+      toast.error(error.message || "Failed to upload voice note.");
+    } finally {
       setIsUploading(false);
     }
+  };
+
+  const handleCancelFileUpload = () => {
+    setUploadedFile(null);
+    setUploadedFileUrl(null);
+    setUploadedFileName("");
+    setRecordingTitle("");
 
     // Reset file input
-    event.target.value = "";
+    const fileInput = document.querySelector(
+      'input[type="file"]'
+    ) as HTMLInputElement;
+    if (fileInput) fileInput.value = "";
   };
 
   const handleDelete = async (voiceNote: TeacherVoiceNote) => {
@@ -641,15 +678,79 @@ const VoiceUpload = () => {
 
               <div className="mt-8 pt-6 border-t border-border">
                 <p className="text-sm font-medium mb-3">Or upload audio file</p>
-                <div className="flex gap-2">
-                  <Input
-                    type="file"
-                    accept="audio/*"
-                    className="glass"
-                    onChange={handleFileUpload}
-                    disabled={isUploading}
-                  />
-                </div>
+                {!uploadedFile ? (
+                  <div className="flex gap-2">
+                    <Input
+                      type="file"
+                      accept="audio/*"
+                      className="glass"
+                      onChange={handleFileUpload}
+                      disabled={isUploading}
+                    />
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    <div className="p-3 rounded-lg bg-secondary/30 border border-primary/30">
+                      <p className="text-sm font-medium mb-1">Selected File:</p>
+                      <p className="text-sm text-muted-foreground truncate">
+                        {uploadedFileName}
+                      </p>
+                    </div>
+                    <div className="space-y-2">
+                      <label className="text-sm font-medium">
+                        Title (Optional)
+                      </label>
+                      <Input
+                        placeholder="Enter title for this file"
+                        value={recordingTitle}
+                        onChange={(e) => setRecordingTitle(e.target.value)}
+                        className="glass"
+                      />
+                    </div>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        className="flex-1"
+                        onClick={() => {
+                          if (audioRef.current && uploadedFileUrl) {
+                            if (isPlaying) {
+                              audioRef.current.pause();
+                              setIsPlaying(false);
+                            } else {
+                              audioRef.current.src = uploadedFileUrl;
+                              audioRef.current.play();
+                              setIsPlaying(true);
+                              audioRef.current.onended = () =>
+                                setIsPlaying(false);
+                            }
+                          }
+                        }}
+                      >
+                        {isPlaying ? (
+                          <Pause className="w-4 h-4 mr-2" />
+                        ) : (
+                          <Play className="w-4 h-4 mr-2" />
+                        )}
+                        {isPlaying ? "Pause" : "Preview"}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={handleCancelFileUpload}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                    <Button
+                      className="w-full h-12 text-lg neon-glow"
+                      onClick={handleUploadFile}
+                      disabled={isUploading}
+                    >
+                      <Upload className="mr-2 w-5 h-5" />
+                      {isUploading ? "Uploading..." : "Upload File"}
+                    </Button>
+                  </div>
+                )}
               </div>
 
               {/* Hidden audio element for playback */}

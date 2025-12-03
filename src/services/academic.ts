@@ -1686,7 +1686,7 @@ export const deleteTeacherVoiceNote = async (
     throw new Error("Voice note not found or access denied.");
   }
 
-  let normalizedPath = normalizeStoragePath(
+  const normalizedPath = normalizeStoragePath(
     storagePath || voiceNote.storage_url
   );
 
@@ -1714,5 +1714,132 @@ export const deleteTeacherVoiceNote = async (
   if (deleteError) {
     console.error("Error deleting voice note record:", deleteError);
     throw new Error("Failed to delete voice note record.");
+  }
+};
+
+// Attendance-related interfaces and functions
+export interface StudentAttendance {
+  id: string;
+  name: string;
+  roll_number: string;
+  present: boolean;
+}
+
+export interface AttendanceRecord {
+  id: string;
+  student_id: string;
+  attendance_date: string;
+  status: string; // "present" or "absent"
+  taken_by: string;
+  recorded_at: string;
+}
+
+// Get students by class_id for attendance marking
+export const getStudentsByClass = async (
+  classId: string
+): Promise<StudentAttendance[]> => {
+  const { data, error } = await supabase
+    .from("students")
+    .select(
+      `
+      id,
+      roll_number,
+      profiles (
+        name
+      ),
+      classes (
+        id,
+        name
+      )
+    `
+    )
+    .eq("class_id", classId)
+    .eq("is_active", true)
+    .order("roll_number", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching students by class:", error);
+    throw new Error("Failed to load students for attendance.");
+  }
+
+  if (!data) {
+    return [];
+  }
+
+  return data.map((student: any) => {
+    const profile = Array.isArray(student.profiles)
+      ? student.profiles[0]
+      : student.profiles;
+
+    return {
+      id: student.id,
+      name: profile?.name || "Unknown Student",
+      roll_number: student.roll_number || "",
+      present: false, // Default to absent, will be updated from attendance records
+    };
+  });
+};
+
+// Fetch existing attendance records for a specific date and class
+export const getAttendanceForDate = async (
+  classId: string,
+  attendanceDate: string
+): Promise<Record<string, boolean>> => {
+  const { data, error } = await supabase
+    .from("attendance")
+    .select("student_id, status")
+    .eq("attendance_date", attendanceDate);
+
+  if (error) {
+    console.error("Error fetching attendance records:", error);
+    return {};
+  }
+
+  if (!data) {
+    return {};
+  }
+
+  const attendanceMap: Record<string, boolean> = {};
+  for (const record of data) {
+    attendanceMap[record.student_id] = record.status === "present";
+  }
+
+  return attendanceMap;
+};
+
+// Save attendance records for a date
+export const saveAttendance = async (
+  classId: string,
+  attendanceDate: string,
+  students: StudentAttendance[],
+  teacherId: string
+): Promise<void> => {
+  // Delete existing attendance records for this date (to avoid duplicates)
+  const { error: deleteError } = await supabase
+    .from("attendance")
+    .delete()
+    .eq("attendance_date", attendanceDate);
+
+  if (deleteError) {
+    console.error("Error clearing old attendance:", deleteError);
+    throw new Error("Failed to save attendance.");
+  }
+
+  // Insert new attendance records
+  const attendanceRecords = students.map((student) => ({
+    student_id: student.id,
+    attendance_date: attendanceDate,
+    status: student.present ? "present" : "absent",
+    taken_by: teacherId,
+    recorded_at: new Date().toISOString(),
+  }));
+
+  const { error: insertError } = await supabase
+    .from("attendance")
+    .insert(attendanceRecords);
+
+  if (insertError) {
+    console.error("Error saving attendance records:", insertError);
+    throw new Error("Failed to save attendance records.");
   }
 };
