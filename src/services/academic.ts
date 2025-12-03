@@ -1539,6 +1539,110 @@ export const deleteTeacherTest = async (
   }
 };
 
+// Student test interface (simplified version for student view)
+export interface StudentTest {
+  id: string;
+  title: string;
+  description?: string;
+  durationMinutes: number;
+  classId: string;
+  className?: string;
+  subjectName?: string;
+  examTypeName?: string;
+  createdAt: string;
+  questionCount: number;
+  totalMarks: number;
+}
+
+// Get published tests for a student by class_id
+export const getStudentTests = async (
+  classId: string
+): Promise<StudentTest[]> => {
+  const { data: testsData, error: testsError } = await supabase
+    .from("tests")
+    .select(
+      `
+      id,
+      title,
+      description,
+      duration_minutes,
+      is_published,
+      class_id,
+      grade_subject_id,
+      exam_type_id,
+      created_at,
+      classes ( name ),
+      grade_subjects (
+        subjects_master ( name )
+      ),
+      exam_types ( name )
+    `
+    )
+    .eq("class_id", classId)
+    .eq("is_published", true)
+    .order("created_at", { ascending: false });
+
+  if (testsError) {
+    console.error("Error fetching student tests:", testsError);
+    throw new Error("Failed to load tests.");
+  }
+
+  if (!testsData) {
+    return [];
+  }
+
+  // Get question counts and total marks for each test
+  const testsWithDetails = await Promise.all(
+    testsData.map(async (test: any) => {
+      // Get questions with marks
+      const { data: questionsData } = await supabase
+        .from("questions")
+        .select("marks")
+        .eq("test_id", test.id);
+
+      const questionCount = questionsData?.length || 0;
+      const totalMarks = questionsData?.reduce((sum, q) => sum + (q.marks || 0), 0) || 0;
+
+      const className = Array.isArray(test.classes)
+        ? test.classes[0]?.name
+        : test.classes?.name;
+
+      let subjectName: string | undefined;
+      if (test.grade_subjects) {
+        const gradeSubject = Array.isArray(test.grade_subjects)
+          ? test.grade_subjects[0]
+          : test.grade_subjects;
+        if (gradeSubject) {
+          const master = Array.isArray(gradeSubject.subjects_master)
+            ? gradeSubject.subjects_master[0]
+            : gradeSubject.subjects_master;
+          subjectName = master?.name;
+        }
+      }
+
+      const examTypeName = Array.isArray(test.exam_types)
+        ? test.exam_types[0]?.name
+        : test.exam_types?.name;
+
+      return {
+        id: test.id,
+        title: test.title,
+        description: test.description || undefined,
+        durationMinutes: test.duration_minutes,
+        classId: test.class_id,
+        className,
+        subjectName,
+        examTypeName,
+        createdAt: test.created_at,
+        questionCount,
+        totalMarks,
+      };
+    })
+  );
+
+  return testsWithDetails;
+};
+
 // ==================== VOICE NOTES ====================
 
 export interface TeacherVoiceNote {
