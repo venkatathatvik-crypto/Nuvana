@@ -31,7 +31,9 @@ import {
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { TrendingUp, Users, BookOpen, AlertCircle, Clock, CheckCircle } from "lucide-react";
+import { TrendingUp, Users, BookOpen, AlertCircle, Clock, CheckCircle, ArrowLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { useNavigate } from "react-router-dom";
 import { getTeacherClasses, FlattenedClass } from "@/services/academic";
 import { useAuth } from "@/auth/AuthContext";
 import LoadingSpinner from "@/components/LoadingSpinner";
@@ -290,6 +292,7 @@ const AnalyticsDashboard = () => {
     const { profile, profileLoading } = useAuth();
     const [classes, setClasses] = useState<FlattenedClass[]>([]);
     const [selectedClass, setSelectedClass] = useState<FlattenedClass | undefined>();
+    const navigate = useNavigate();
     const [selectedStudent, setSelectedStudent] = useState("S1");
     const [loading, setLoading] = useState(true);
 
@@ -326,9 +329,14 @@ const AnalyticsDashboard = () => {
     return (
         <div className="min-h-screen p-6 space-y-8 bg-background">
             <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex justify-between items-center">
-                <div>
-                    <h1 className="text-4xl font-bold mb-2">Analytics Dashboard 📊</h1>
-                    <p className="text-muted-foreground">Deep insights into student performance</p>
+                <div className="flex items-center gap-4">
+                    <Button variant="ghost" size="icon" onClick={() => navigate("/teacher")}>
+                        <ArrowLeft className="w-6 h-6" />
+                    </Button>
+                    <div>
+                        <h1 className="text-4xl font-bold mb-2">Analytics Dashboard 📊</h1>
+                        <p className="text-muted-foreground">Deep insights into student performance</p>
+                    </div>
                 </div>
 
                 <Select value={selectedClass?.class_id} onValueChange={(id) => setSelectedClass(classes.find((c) => c.class_id === id))}>

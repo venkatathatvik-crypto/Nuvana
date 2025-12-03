@@ -19,6 +19,8 @@ import {
   getStudentData,
   getStudentAnnouncements,
   getOverallAttendancePercentage,
+  getStudentAverageMarksPercentage,
+  getStudentPendingTestsCount,
 } from "@/services/academic";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { formatDistanceToNow } from "date-fns";
@@ -33,6 +35,10 @@ const Dashboard = () => {
     number | null
   >(null);
   const [loadingAttendance, setLoadingAttendance] = useState(true);
+  const [averageMarks, setAverageMarks] = useState<number | null>(null);
+  const [loadingMarks, setLoadingMarks] = useState(true);
+  const [pendingTests, setPendingTests] = useState<number>(0);
+  const [loadingTests, setLoadingTests] = useState(true);
 
   const handleLogout = async () => {
     await logout();
@@ -46,6 +52,8 @@ const Dashboard = () => {
       if (!profile) {
         setLoadingAnnouncements(false);
         setLoadingAttendance(false);
+        setLoadingMarks(false);
+        setLoadingTests(false);
         return;
       }
 
@@ -53,6 +61,14 @@ const Dashboard = () => {
         // Fetch attendance percentage
         const attendance = await getOverallAttendancePercentage(profile.id);
         setAttendancePercentage(Math.round(attendance * 10) / 10);
+
+        // Fetch average marks percentage
+        const marks = await getStudentAverageMarksPercentage(profile.id);
+        setAverageMarks(marks);
+
+        // Fetch pending tests count
+        const pending = await getStudentPendingTestsCount(profile.id);
+        setPendingTests(pending);
 
         // Get student data to get class_id
         const studentData = await getStudentData(profile.id);
@@ -69,6 +85,8 @@ const Dashboard = () => {
       } finally {
         setLoadingAnnouncements(false);
         setLoadingAttendance(false);
+        setLoadingMarks(false);
+        setLoadingTests(false);
       }
     };
 
@@ -84,11 +102,11 @@ const Dashboard = () => {
       path: "/student/attendance",
     },
     {
-      label: "Upcoming Tests",
-      value: "3",
+      label: "Pending Tests",
+      value: loadingTests ? "..." : pendingTests.toString(),
       icon: Calendar,
       color: "text-neon-purple",
-      path: "/student/events",
+      path: "/student/tests",
     },
     {
       label: "Assignments",
@@ -99,7 +117,7 @@ const Dashboard = () => {
     },
     {
       label: "Average Marks",
-      value: "82%",
+      value: loadingMarks ? "..." : `${averageMarks}%`,
       icon: Award,
       color: "text-blue-500",
       path: "/student/marks",
