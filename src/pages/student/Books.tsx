@@ -150,13 +150,13 @@ const Books = () => {
                     <p className="text-sm text-muted-foreground">Subjects</p>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-secondary">
+                    <p className="text-3xl font-bold text-primary">
                       {subjects.reduce((acc, sub) => acc + sub.materials.length, 0)}
                     </p>
                     <p className="text-sm text-muted-foreground">Total Files</p>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-accent">PDF</p>
+                    <p className="text-3xl font-bold text-primary">PDF</p>
                     <p className="text-sm text-muted-foreground">Format</p>
                   </div>
                   <div>
