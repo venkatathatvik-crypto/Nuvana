@@ -213,13 +213,13 @@ const Notes = () => {
                     <p className="text-sm text-muted-foreground">Subjects</p>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-secondary">
+                    <p className="text-3xl font-bold text-primary">
                       {voiceNotes.length}
                     </p>
                     <p className="text-sm text-muted-foreground">Total Notes</p>
                   </div>
                   <div>
-                    <p className="text-3xl font-bold text-accent">MP3</p>
+                    <p className="text-3xl font-bold text-primary">MP3</p>
                     <p className="text-sm text-muted-foreground">Format</p>
                   </div>
                   <div>

@@ -15,13 +15,13 @@ interface TeacherClassRow {
 interface GradeSubjectRow {
   id: string;
   subjects_master:
-    | {
-        name: string;
-      }
-    | {
-        name: string;
-      }[]
-    | null;
+  | {
+    name: string;
+  }
+  | {
+    name: string;
+  }[]
+  | null;
 }
 
 const FILES_BUCKET =
@@ -80,13 +80,13 @@ interface TeacherFileRow {
   file_categories: NamedEntity | NamedEntity[] | null;
   classes: NamedEntity | NamedEntity[] | null;
   grade_subjects:
-    | {
-        subjects_master: NamedEntity | NamedEntity[] | null;
-      }
-    | {
-        subjects_master: NamedEntity | NamedEntity[] | null;
-      }[]
-    | null;
+  | {
+    subjects_master: NamedEntity | NamedEntity[] | null;
+  }
+  | {
+    subjects_master: NamedEntity | NamedEntity[] | null;
+  }[]
+  | null;
 }
 
 interface StoragePathRow {
@@ -1002,6 +1002,7 @@ export interface TeacherTest {
   examTypeName?: string;
   teacherId: string;
   createdAt: string;
+  dueDate?: string;
   questions: TestQuestion[];
 }
 
@@ -1016,15 +1017,16 @@ interface TestRow {
   exam_type_id: number;
   teacher_id: string;
   created_at: string;
+  due_date?: string | null;
   classes?: { name: string } | { name: string }[] | null;
   grade_subjects?:
-    | {
-        subjects_master: { name: string } | { name: string }[] | null;
-      }
-    | {
-        subjects_master: { name: string } | { name: string }[] | null;
-      }[]
-    | null;
+  | {
+    subjects_master: { name: string } | { name: string }[] | null;
+  }
+  | {
+    subjects_master: { name: string } | { name: string }[] | null;
+  }[]
+  | null;
   exam_types?: { name: string } | { name: string }[] | null;
 }
 
@@ -1040,6 +1042,7 @@ interface CreateTestParams {
   gradeSubjectId: string;
   examTypeId: number;
   teacherId: string;
+  dueDate?: string;
   questions: {
     text: string;
     questionType?: QuestionType;
@@ -1126,6 +1129,7 @@ export const createTeacherTest = async (
     gradeSubjectId,
     examTypeId,
     teacherId,
+    dueDate,
     questions,
   } = params;
 
@@ -1141,6 +1145,7 @@ export const createTeacherTest = async (
       grade_subject_id: gradeSubjectId,
       exam_type_id: examTypeId,
       teacher_id: teacherId,
+      due_date: dueDate || null,
     })
     .select("id, created_at")
     .single();
@@ -1225,6 +1230,7 @@ export const getTeacherTest = async (
       exam_type_id,
       teacher_id,
       created_at,
+      due_date,
       classes ( name ),
       grade_subjects (
         subjects_master ( name )
@@ -1317,6 +1323,7 @@ export const getTeacherTest = async (
     examTypeName,
     teacherId: test.teacher_id,
     createdAt: test.created_at,
+    dueDate: test.due_date || undefined,
     questions,
   };
 };
@@ -1339,6 +1346,7 @@ export const getTeacherTests = async (
       exam_type_id,
       teacher_id,
       created_at,
+      due_date,
       classes ( name ),
       grade_subjects (
         subjects_master ( name )
@@ -1403,6 +1411,7 @@ export const getTeacherTests = async (
         examTypeName,
         teacherId: test.teacher_id,
         createdAt: test.created_at,
+        dueDate: (test as any).due_date || undefined,
         questions: Array(questionCount)
           .fill(null)
           .map((_, i) => ({
@@ -2510,13 +2519,13 @@ interface VoiceNoteRow {
   created_at: string;
   classes: NamedEntity | NamedEntity[] | null;
   grade_subjects:
-    | {
-        subjects_master: NamedEntity | NamedEntity[] | null;
-      }
-    | {
-        subjects_master: NamedEntity | NamedEntity[] | null;
-      }[]
-    | null;
+  | {
+    subjects_master: NamedEntity | NamedEntity[] | null;
+  }
+  | {
+    subjects_master: NamedEntity | NamedEntity[] | null;
+  }[]
+  | null;
 }
 
 interface UploadVoiceNoteParams {

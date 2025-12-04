@@ -98,21 +98,21 @@ const Dashboard = () => {
       label: "Attendance",
       value: loadingAttendance ? "..." : `${attendancePercentage}%`,
       icon: Users,
-      color: "text-neon-cyan",
+      color: "text-neon-blue",
       path: "/student/attendance",
     },
     {
       label: "Notes",
       value: "Access",
       icon: StickyNote,
-      color: "text-neon-purple",
+      color: "text-green-500",
       path: "/student/notes"
     },
     {
       label: "Books",
       value: "Library",
       icon: BookOpen,
-      color: "text-neon-cyan",
+      color: "text-neon-blue",
       path: "/student/books"
     },
     {
@@ -133,21 +133,21 @@ const Dashboard = () => {
       label: "Timetable",
       value: "View",
       icon: Calendar,
-      color: "text-neon-purple",
+      color: "text-green-500",
       path: "/student/timetable"
     },
     {
       label: "Assignments",
       value: "5",
       icon: FileText,
-      color: "text-neon-pink",
+      color: "text-neon-blue",
       path: "/student/events",
     },
     {
       label: "Average Marks",
       value: loadingMarks ? "..." : `${averageMarks}%`,
       icon: Award,
-      color: "text-blue-500",
+      color: "text-green-500",
       path: "/student/marks",
     },
   ];
