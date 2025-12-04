@@ -1,11 +1,27 @@
 import { motion } from "framer-motion";
-import { BookOpen, Calendar, FileText, Bell, Award, Users, StickyNote, LogOut, BarChart2 } from "lucide-react";
+import {
+  BookOpen,
+  Calendar,
+  FileText,
+  Bell,
+  Award,
+  Users,
+  StickyNote,
+  LogOut,
+  BarChart2,
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/auth/AuthContext";
 import { useEffect, useState } from "react";
-import { getStudentData, getStudentAnnouncements } from "@/services/academic";
+import {
+  getStudentData,
+  getStudentAnnouncements,
+  getOverallAttendancePercentage,
+  getStudentAverageMarksPercentage,
+  getStudentPendingTestsCount,
+} from "@/services/academic";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { formatDistanceToNow } from "date-fns";
 
@@ -15,6 +31,14 @@ const Dashboard = () => {
   const [announcements, setAnnouncements] = useState<any[]>([]);
   const [loadingAnnouncements, setLoadingAnnouncements] = useState(true);
   const [studentClassId, setStudentClassId] = useState<string | null>(null);
+  const [attendancePercentage, setAttendancePercentage] = useState<
+    number | null
+  >(null);
+  const [loadingAttendance, setLoadingAttendance] = useState(true);
+  const [averageMarks, setAverageMarks] = useState<number | null>(null);
+  const [loadingMarks, setLoadingMarks] = useState(true);
+  const [pendingTests, setPendingTests] = useState<number>(0);
+  const [loadingTests, setLoadingTests] = useState(true);
 
   const handleLogout = async () => {
     await logout();
@@ -22,52 +46,120 @@ const Dashboard = () => {
   };
 
   useEffect(() => {
-    const fetchStudentAnnouncements = async () => {
+    const fetchStudentData = async () => {
       if (profileLoading) return;
 
       if (!profile) {
         setLoadingAnnouncements(false);
+        setLoadingAttendance(false);
+        setLoadingMarks(false);
+        setLoadingTests(false);
         return;
       }
 
       try {
+        // Fetch attendance percentage
+        const attendance = await getOverallAttendancePercentage(profile.id);
+        setAttendancePercentage(Math.round(attendance * 10) / 10);
+
+        // Fetch average marks percentage
+        const marks = await getStudentAverageMarksPercentage(profile.id);
+        setAverageMarks(marks);
+
+        // Fetch pending tests count
+        const pending = await getStudentPendingTestsCount(profile.id);
+        setPendingTests(pending);
+
         // Get student data to get class_id
         const studentData = await getStudentData(profile.id);
         if (studentData && studentData.class_id) {
           setStudentClassId(studentData.class_id);
           // Fetch announcements for this class
-          const announcementsData = await getStudentAnnouncements(studentData.class_id);
+          const announcementsData = await getStudentAnnouncements(
+            studentData.class_id
+          );
           setAnnouncements(announcementsData);
         }
       } catch (error) {
-        console.error("Error fetching student announcements:", error);
+        console.error("Error fetching student data:", error);
       } finally {
         setLoadingAnnouncements(false);
+        setLoadingAttendance(false);
+        setLoadingMarks(false);
+        setLoadingTests(false);
       }
     };
 
-    fetchStudentAnnouncements();
+    fetchStudentData();
   }, [profile, profileLoading]);
 
   const quickActions = [
-    { label: "Attendance", value: "87%", icon: Users, color: "text-blue-500", path: "/student/attendance" },
-    { label: "Notes", value: "Access", icon: StickyNote, color: "text-indigo-500", path: "/student/notes" },
-    { label: "Books", value: "Library", icon: BookOpen, color: "text-green-500", path: "/student/books" },
-    { label: "My Analytics", value: "View", icon: BarChart2, color: "text-blue-500", path: "/student/analytics" },
-    { label: "My Tests", value: "Take", icon: FileText, color: "text-blue-500", path: "/student/tests" },
-    { label: "Timetable", value: "View", icon: Calendar, color: "text-indigo-500", path: "/student/timetable" },
-    { label: "Assignments", value: "5", icon: FileText, color: "text-green-500", path: "/student/events" },
-    { label: "Average Marks", value: "82%", icon: Award, color: "text-blue-500", path: "/student/marks" },
-
-
-
-
+    {
+      label: "Attendance",
+      value: loadingAttendance ? "..." : `${attendancePercentage}%`,
+      icon: Users,
+      color: "text-neon-cyan",
+      path: "/student/attendance",
+    },
+    {
+      label: "Notes",
+      value: "Access",
+      icon: StickyNote,
+      color: "text-neon-purple",
+      path: "/student/notes"
+    },
+    {
+      label: "Books",
+      value: "Library",
+      icon: BookOpen,
+      color: "text-neon-cyan",
+      path: "/student/books"
+    },
+    {
+      label: "My Analytics",
+      value: "View",
+      icon: BarChart2,
+      color: "text-green-500",
+      path: "/student/analytics",
+    },
+    {
+      label: "My Tests",
+      value: loadingTests ? "..." : (pendingTests > 0 ? `${pendingTests} Pending` : "Take"),
+      icon: FileText,
+      color: "text-neon-purple",
+      path: "/student/tests",
+    },
+    {
+      label: "Timetable",
+      value: "View",
+      icon: Calendar,
+      color: "text-neon-purple",
+      path: "/student/timetable"
+    },
+    {
+      label: "Assignments",
+      value: "5",
+      icon: FileText,
+      color: "text-neon-pink",
+      path: "/student/events",
+    },
+    {
+      label: "Average Marks",
+      value: loadingMarks ? "..." : `${averageMarks}%`,
+      icon: Award,
+      color: "text-blue-500",
+      path: "/student/marks",
+    },
   ];
 
   const todayClasses = [
     { subject: "Mathematics", time: "9:00 AM - 10:30 AM", room: "Room 301" },
     { subject: "Physics", time: "11:00 AM - 12:30 PM", room: "Lab 2" },
-    { subject: "Computer Science", time: "2:00 PM - 3:30 PM", room: "Room 105" },
+    {
+      subject: "Computer Science",
+      time: "2:00 PM - 3:30 PM",
+      room: "Room 105",
+    },
   ];
 
   return (
@@ -83,7 +175,9 @@ const Dashboard = () => {
             <h1 className="text-4xl font-bold neon-text mb-2">
               Welcome back, Student! 👋
             </h1>
-            <p className="text-muted-foreground">Here's what's happening today</p>
+            <p className="text-muted-foreground">
+              Here's what's happening today
+            </p>
           </div>
           <div className="flex gap-4">
             <Button
@@ -149,7 +243,9 @@ const Dashboard = () => {
                     className="p-4 rounded-lg bg-muted/50 border border-border hover:border-primary transition-colors"
                   >
                     <h3 className="font-semibold text-lg">{cls.subject}</h3>
-                    <p className="text-sm text-muted-foreground mt-1">{cls.time}</p>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {cls.time}
+                    </p>
                     <p className="text-xs text-muted-foreground">{cls.room}</p>
                   </div>
                 ))}
@@ -186,9 +282,13 @@ const Dashboard = () => {
                         }`}
                     >
                       <h3 className="font-semibold">{announcement.title}</h3>
-                      <p className="text-sm text-muted-foreground mt-2">{announcement.message}</p>
+                      <p className="text-sm text-muted-foreground mt-2">
+                        {announcement.message}
+                      </p>
                       <p className="text-xs text-muted-foreground mt-2">
-                        {formatDistanceToNow(new Date(announcement.createdAt), { addSuffix: true })}
+                        {formatDistanceToNow(new Date(announcement.createdAt), {
+                          addSuffix: true,
+                        })}
                       </p>
                     </div>
                   ))}

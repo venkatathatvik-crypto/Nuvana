@@ -15,13 +15,13 @@ interface TeacherClassRow {
 interface GradeSubjectRow {
   id: string;
   subjects_master:
-  | {
-    name: string;
-  }
-  | {
-    name: string;
-  }[]
-  | null;
+    | {
+        name: string;
+      }
+    | {
+        name: string;
+      }[]
+    | null;
 }
 
 const FILES_BUCKET =
@@ -80,13 +80,13 @@ interface TeacherFileRow {
   file_categories: NamedEntity | NamedEntity[] | null;
   classes: NamedEntity | NamedEntity[] | null;
   grade_subjects:
-  | {
-    subjects_master: NamedEntity | NamedEntity[] | null;
-  }
-  | {
-    subjects_master: NamedEntity | NamedEntity[] | null;
-  }[]
-  | null;
+    | {
+        subjects_master: NamedEntity | NamedEntity[] | null;
+      }
+    | {
+        subjects_master: NamedEntity | NamedEntity[] | null;
+      }[]
+    | null;
 }
 
 interface StoragePathRow {
@@ -856,6 +856,67 @@ export const getStudentFiles = async (
   return data.map((record) => mapFileRecordToItem(record as TeacherFileRow));
 };
 
+// Get voice notes by class_id for students
+export interface StudentVoiceNote {
+  id: string;
+  title: string;
+  storageUrl: string;
+  duration: number;
+  fileSize: number;
+  subject: string;
+  gradeSubjectId: string;
+  uploadDate: string;
+}
+
+export const getStudentVoiceNotes = async (
+  classId: string
+): Promise<StudentVoiceNote[]> => {
+  const { data, error } = await supabase
+    .from("voice_notes")
+    .select(
+      `
+      id,
+      title,
+      storage_url,
+      duration_seconds,
+      file_size_bytes,
+      grade_subject_id,
+      created_at,
+      grade_subjects (
+        subjects_master ( name )
+      )
+    `
+    )
+    .eq("class_id", classId)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    console.error("Error fetching student voice notes:", error);
+    throw new Error("Failed to load voice notes.");
+  }
+
+  if (!data) {
+    return [];
+  }
+
+  return data.map((record: any) => {
+    const subjectMaster = Array.isArray(record.grade_subjects?.subjects_master)
+      ? record.grade_subjects.subjects_master[0]
+      : record.grade_subjects?.subjects_master;
+
+    return {
+      id: record.id,
+      title: record.title,
+      storageUrl: record.storage_url,
+      duration: record.duration_seconds || 0,
+      fileSize: record.file_size_bytes || 0,
+      subject: subjectMaster?.name || "General",
+      gradeSubjectId: record.grade_subject_id,
+      uploadDate: record.created_at,
+    };
+  });
+};
+
 // Get announcements filtered by class_id for students
 export const getStudentAnnouncements = async (
   classId: string
@@ -967,6 +1028,9 @@ interface TestRow {
   exam_types?: { name: string } | { name: string }[] | null;
 }
 
+// Question types matching the database enum
+export type QuestionType = "MCQ" | "Essay" | "Short Answer" | "Very Short Answer";
+
 interface CreateTestParams {
   title: string;
   description?: string;
@@ -978,8 +1042,10 @@ interface CreateTestParams {
   teacherId: string;
   questions: {
     text: string;
-    options: string[];
-    correctOptionIndex: number;
+    questionType?: QuestionType;
+    options?: string[];
+    correctOptionIndex?: number;
+    expectedAnswerText?: string;
     marks: number;
     chapter: string;
     topic: string;
@@ -1088,6 +1154,9 @@ export const createTeacherTest = async (
 
   // Create questions and options
   for (const question of questions) {
+    const questionType = question.questionType || "MCQ";
+    const isMCQ = questionType === "MCQ";
+
     const { data: questionData, error: questionError } = await supabase
       .from("questions")
       .insert({
@@ -1096,7 +1165,9 @@ export const createTeacherTest = async (
         marks: question.marks,
         chapter: question.chapter,
         topic: question.topic,
-        correct_option_index: question.correctOptionIndex,
+        question_type: questionType,
+        correct_option_index: isMCQ ? question.correctOptionIndex : null,
+        expected_answer_text: !isMCQ ? (question.expectedAnswerText || null) : null,
       })
       .select("id")
       .single();
@@ -1108,23 +1179,25 @@ export const createTeacherTest = async (
 
     const questionId = questionData.id;
 
-    // Create options
-    const optionsToInsert = question.options
-      .map((optionText, index) => ({
-        question_id: questionId,
-        option_index: index,
-        option_text: optionText,
-      }))
-      .filter((opt) => opt.option_text.trim() !== "");
+    // Create options only for MCQ questions
+    if (isMCQ && question.options && Array.isArray(question.options) && question.options.length > 0) {
+      const optionsToInsert = question.options
+        .map((optionText: string, index: number) => ({
+          question_id: questionId,
+          option_index: index,
+          option_text: optionText || "",
+        }))
+        .filter((opt) => opt.option_text.trim() !== "");
 
-    if (optionsToInsert.length > 0) {
-      const { error: optionsError } = await supabase
-        .from("question_options")
-        .insert(optionsToInsert);
+      if (optionsToInsert.length > 0) {
+        const { error: optionsError } = await supabase
+          .from("question_options")
+          .insert(optionsToInsert);
 
-      if (optionsError) {
-        console.error("Error creating options:", optionsError);
-        throw new Error("Failed to create question options.");
+        if (optionsError) {
+          console.error("Error creating options:", optionsError);
+          throw new Error("Failed to create question options.");
+        }
       }
     }
   }
@@ -1478,6 +1551,941 @@ export const deleteTeacherTest = async (
   }
 };
 
+// Student test interface (simplified version for student view)
+export interface StudentTest {
+  id: string;
+  title: string;
+  description?: string;
+  durationMinutes: number;
+  classId: string;
+  className?: string;
+  subjectName?: string;
+  examTypeName?: string;
+  createdAt: string;
+  questionCount: number;
+  totalMarks: number;
+  // Submission status
+  submissionStatus: "not_started" | "pending" | "graded";
+  submittedAt?: string;
+  marksObtained?: number;
+}
+
+// Get published tests for a student by class_id (with submission status)
+export const getStudentTests = async (
+  classId: string,
+  studentId: string
+): Promise<StudentTest[]> => {
+  const { data: testsData, error: testsError } = await supabase
+    .from("tests")
+    .select(
+      `
+      id,
+      title,
+      description,
+      duration_minutes,
+      is_published,
+      class_id,
+      grade_subject_id,
+      exam_type_id,
+      created_at,
+      classes ( name ),
+      grade_subjects (
+        subjects_master ( name )
+      ),
+      exam_types ( name )
+    `
+    )
+    .eq("class_id", classId)
+    .eq("is_published", true)
+    .order("created_at", { ascending: false });
+
+  if (testsError) {
+    console.error("Error fetching student tests:", testsError);
+    throw new Error("Failed to load tests.");
+  }
+
+  if (!testsData) {
+    return [];
+  }
+
+  // Get question counts, total marks, and submission status for each test
+  const testsWithDetails = await Promise.all(
+    testsData.map(async (test: any) => {
+      // Get questions with marks
+      const { data: questionsData } = await supabase
+        .from("questions")
+        .select("marks")
+        .eq("test_id", test.id);
+
+      const questionCount = questionsData?.length || 0;
+      const totalMarks = questionsData?.reduce((sum, q) => sum + (q.marks || 0), 0) || 0;
+
+      // Check submission status for this student
+      const { data: submissionData } = await supabase
+        .from("test_submissions")
+        .select("id, is_graded, total_marks_obtained, submitted_at")
+        .eq("test_id", test.id)
+        .eq("student_id", studentId)
+        .single();
+
+      let submissionStatus: "not_started" | "pending" | "graded" = "not_started";
+      let submittedAt: string | undefined;
+      let marksObtained: number | undefined;
+
+      if (submissionData) {
+        submissionStatus = submissionData.is_graded ? "graded" : "pending";
+        submittedAt = submissionData.submitted_at;
+        marksObtained = submissionData.total_marks_obtained || undefined;
+      }
+
+      const className = Array.isArray(test.classes)
+        ? test.classes[0]?.name
+        : test.classes?.name;
+
+      let subjectName: string | undefined;
+      if (test.grade_subjects) {
+        const gradeSubject = Array.isArray(test.grade_subjects)
+          ? test.grade_subjects[0]
+          : test.grade_subjects;
+        if (gradeSubject) {
+          const master = Array.isArray(gradeSubject.subjects_master)
+            ? gradeSubject.subjects_master[0]
+            : gradeSubject.subjects_master;
+          subjectName = master?.name;
+        }
+      }
+
+      const examTypeName = Array.isArray(test.exam_types)
+        ? test.exam_types[0]?.name
+        : test.exam_types?.name;
+
+      return {
+        id: test.id,
+        title: test.title,
+        description: test.description || undefined,
+        durationMinutes: test.duration_minutes,
+        classId: test.class_id,
+        className,
+        subjectName,
+        examTypeName,
+        createdAt: test.created_at,
+        questionCount,
+        totalMarks,
+        submissionStatus,
+        submittedAt,
+        marksObtained,
+      };
+    })
+  );
+
+  return testsWithDetails;
+};
+
+// Student test with questions for taking test
+export interface StudentTestQuestion {
+  id: string;
+  text: string;
+  questionType: QuestionType;
+  options: string[]; // Only for MCQ
+  marks: number;
+  chapter?: string;
+  topic?: string;
+}
+
+export interface StudentTestWithQuestions {
+  id: string;
+  title: string;
+  description?: string;
+  durationMinutes: number;
+  subjectName?: string;
+  questions: StudentTestQuestion[];
+}
+
+// Get test with questions for student to take (without correct answers)
+export const getStudentTestForAttempt = async (
+  testId: string,
+  studentId: string
+): Promise<StudentTestWithQuestions | null> => {
+  // First verify the test is published and student has access
+  const { data: testData, error: testError } = await supabase
+    .from("tests")
+    .select(
+      `
+      id,
+      title,
+      description,
+      duration_minutes,
+      is_published,
+      class_id,
+      grade_subjects (
+        subjects_master ( name )
+      )
+    `
+    )
+    .eq("id", testId)
+    .eq("is_published", true)
+    .single();
+
+  if (testError || !testData) {
+    console.error("Error fetching test:", testError);
+    return null;
+  }
+
+  // Verify student belongs to the test's class
+  const { data: studentData, error: studentError } = await supabase
+    .from("students")
+    .select("class_id")
+    .eq("id", studentId)
+    .single();
+
+  if (studentError || !studentData || studentData.class_id !== testData.class_id) {
+    console.error("Student not authorized for this test");
+    return null;
+  }
+
+  // Fetch questions with options (without correct_option_index for security)
+  const { data: questionsData, error: questionsError } = await supabase
+    .from("questions")
+    .select("id, question_text, question_type, marks, chapter, topic")
+    .eq("test_id", testId);
+
+  if (questionsError) {
+    console.error("Error fetching questions:", questionsError);
+    throw new Error("Failed to load questions.");
+  }
+
+  const questions: StudentTestQuestion[] = [];
+
+  for (const question of questionsData || []) {
+    const questionType = (question.question_type as QuestionType) || "MCQ";
+    const isMCQ = questionType === "MCQ";
+
+    // Only fetch options for MCQ questions
+    let options: string[] = [];
+    if (isMCQ) {
+      const { data: optionsData } = await supabase
+        .from("question_options")
+        .select("option_index, option_text")
+        .eq("question_id", question.id)
+        .order("option_index", { ascending: true });
+      options = (optionsData || []).map((opt) => opt.option_text);
+    }
+
+    questions.push({
+      id: question.id,
+      text: question.question_text,
+      questionType,
+      options,
+      marks: question.marks,
+      chapter: question.chapter,
+      topic: question.topic,
+    });
+  }
+
+  let subjectName: string | undefined;
+  if (testData.grade_subjects) {
+    const gradeSubject = Array.isArray(testData.grade_subjects)
+      ? testData.grade_subjects[0]
+      : testData.grade_subjects;
+    if (gradeSubject) {
+      const master = Array.isArray(gradeSubject.subjects_master)
+        ? gradeSubject.subjects_master[0]
+        : gradeSubject.subjects_master;
+      subjectName = master?.name;
+    }
+  }
+
+  return {
+    id: testData.id,
+    title: testData.title,
+    description: testData.description || undefined,
+    durationMinutes: testData.duration_minutes,
+    subjectName,
+    questions,
+  };
+};
+
+// Check if student has already submitted this test
+export interface StudentSubmission {
+  id: string;
+  testId: string;
+  studentId: string;
+  submittedAt: string;
+  isGraded: boolean;
+  totalMarksObtained: number;
+  answers: {
+    questionId: string;
+    selectedOptionIndex: number | null;
+    marksAwarded: number;
+  }[];
+}
+
+export const getStudentSubmission = async (
+  testId: string,
+  studentId: string
+): Promise<StudentSubmission | null> => {
+  const { data: submissionData, error: submissionError } = await supabase
+    .from("test_submissions")
+    .select("id, test_id, student_id, submitted_at, is_graded, total_marks_obtained")
+    .eq("test_id", testId)
+    .eq("student_id", studentId)
+    .single();
+
+  if (submissionError || !submissionData) {
+    return null;
+  }
+
+  // Fetch answers
+  const { data: answersData } = await supabase
+    .from("student_answers")
+    .select("question_id, student_selected_option_index, marks_awarded")
+    .eq("submission_id", submissionData.id);
+
+  return {
+    id: submissionData.id,
+    testId: submissionData.test_id,
+    studentId: submissionData.student_id,
+    submittedAt: submissionData.submitted_at,
+    isGraded: submissionData.is_graded,
+    totalMarksObtained: submissionData.total_marks_obtained || 0,
+    answers: (answersData || []).map((a) => ({
+      questionId: a.question_id,
+      selectedOptionIndex: a.student_selected_option_index,
+      marksAwarded: a.marks_awarded || 0,
+    })),
+  };
+};
+
+// Submit test answers
+export interface SubmitTestParams {
+  testId: string;
+  studentId: string;
+  answers: Record<string, number | string>; // questionId -> selectedOptionIndex (MCQ) or text answer (subjective)
+  timeTakenSeconds: number;
+}
+
+export const submitStudentTest = async (
+  params: SubmitTestParams
+): Promise<StudentSubmission> => {
+  const { testId, studentId, answers } = params;
+
+  // Fetch questions to save answers (including question_type)
+  const { data: questionsData, error: questionsError } = await supabase
+    .from("questions")
+    .select("id, question_type")
+    .eq("test_id", testId);
+
+  if (questionsError || !questionsData) {
+    throw new Error("Failed to fetch questions.");
+  }
+
+  // Prepare answer records (no marks awarded yet - pending teacher grading)
+  const answerRecords: {
+    questionId: string;
+    selectedOptionIndex: number | null;
+    subjectiveAnswerText: string | null;
+    marksAwarded: number;
+  }[] = [];
+
+  for (const question of questionsData) {
+    const questionType = question.question_type || "MCQ";
+    const isMCQ = questionType === "MCQ";
+    const answerValue = answers[question.id];
+
+    answerRecords.push({
+      questionId: question.id,
+      selectedOptionIndex: isMCQ ? (typeof answerValue === "number" ? answerValue : null) : null,
+      subjectiveAnswerText: !isMCQ ? (typeof answerValue === "string" ? answerValue : null) : null,
+      marksAwarded: 0, // Will be set by teacher during grading
+    });
+  }
+
+  // Create submission (NOT graded - teacher will grade)
+  const { data: submissionData, error: submissionError } = await supabase
+    .from("test_submissions")
+    .insert({
+      test_id: testId,
+      student_id: studentId,
+      is_graded: false, // Pending teacher grading
+      total_marks_obtained: 0, // Will be calculated after grading
+    })
+    .select("id, submitted_at")
+    .single();
+
+  if (submissionError || !submissionData) {
+    console.error("Error creating submission:", submissionError);
+    throw new Error("Failed to submit test.");
+  }
+
+  // Insert answers (without marks - pending grading)
+  const answersToInsert = answerRecords.map((a) => ({
+    submission_id: submissionData.id,
+    question_id: a.questionId,
+    student_selected_option_index: a.selectedOptionIndex,
+    subjective_answer_text: a.subjectiveAnswerText,
+    marks_awarded: 0, // Pending grading
+  }));
+
+  const { error: answersError } = await supabase
+    .from("student_answers")
+    .insert(answersToInsert);
+
+  if (answersError) {
+    console.error("Error saving answers:", answersError);
+    throw new Error("Failed to save answers.");
+  }
+
+  return {
+    id: submissionData.id,
+    testId,
+    studentId,
+    submittedAt: submissionData.submitted_at,
+    isGraded: false,
+    totalMarksObtained: 0,
+    answers: answerRecords,
+  };
+};
+
+// Get test results with correct answers (only after submission)
+export interface TestResultQuestion {
+  id: string;
+  text: string;
+  options: string[];
+  correctOptionIndex: number;
+  marks: number;
+  selectedOptionIndex: number | null;
+  marksAwarded: number;
+}
+
+export interface TestResult {
+  test: {
+    id: string;
+    title: string;
+    description?: string;
+    durationMinutes: number;
+    subjectName?: string;
+  };
+  submission: {
+    id: string;
+    submittedAt: string;
+    totalMarksObtained: number;
+    totalMarks: number;
+  };
+  questions: TestResultQuestion[];
+}
+
+export const getTestResult = async (
+  testId: string,
+  studentId: string
+): Promise<TestResult | null> => {
+  // Get submission first
+  const submission = await getStudentSubmission(testId, studentId);
+  if (!submission) {
+    return null;
+  }
+
+  // Get test details
+  const { data: testData, error: testError } = await supabase
+    .from("tests")
+    .select(
+      `
+      id,
+      title,
+      description,
+      duration_minutes,
+      grade_subjects (
+        subjects_master ( name )
+      )
+    `
+    )
+    .eq("id", testId)
+    .single();
+
+  if (testError || !testData) {
+    return null;
+  }
+
+  // Get questions with correct answers
+  const { data: questionsData } = await supabase
+    .from("questions")
+    .select("id, question_text, marks, correct_option_index")
+    .eq("test_id", testId);
+
+  const questions: TestResultQuestion[] = [];
+  let totalMarks = 0;
+
+  for (const question of questionsData || []) {
+    const { data: optionsData } = await supabase
+      .from("question_options")
+      .select("option_index, option_text")
+      .eq("question_id", question.id)
+      .order("option_index", { ascending: true });
+
+    const options = (optionsData || []).map((opt) => opt.option_text);
+    const answer = submission.answers.find((a) => a.questionId === question.id);
+
+    totalMarks += question.marks;
+
+    questions.push({
+      id: question.id,
+      text: question.question_text,
+      options,
+      correctOptionIndex: question.correct_option_index,
+      marks: question.marks,
+      selectedOptionIndex: answer?.selectedOptionIndex ?? null,
+      marksAwarded: answer?.marksAwarded ?? 0,
+    });
+  }
+
+  let subjectName: string | undefined;
+  if (testData.grade_subjects) {
+    const gradeSubject = Array.isArray(testData.grade_subjects)
+      ? testData.grade_subjects[0]
+      : testData.grade_subjects;
+    if (gradeSubject) {
+      const master = Array.isArray(gradeSubject.subjects_master)
+        ? gradeSubject.subjects_master[0]
+        : gradeSubject.subjects_master;
+      subjectName = master?.name;
+    }
+  }
+
+  return {
+    test: {
+      id: testData.id,
+      title: testData.title,
+      description: testData.description || undefined,
+      durationMinutes: testData.duration_minutes,
+      subjectName,
+    },
+    submission: {
+      id: submission.id,
+      submittedAt: submission.submittedAt,
+      totalMarksObtained: submission.totalMarksObtained,
+      totalMarks,
+    },
+    questions,
+  };
+};
+
+// Get all graded test results for a student (for Marks page)
+export interface StudentGradedTest {
+  testId: string;
+  testTitle: string;
+  subjectName?: string;
+  examTypeName?: string;
+  submittedAt: string;
+  totalMarks: number;
+  marksObtained: number;
+  percentage: number;
+}
+
+export const getStudentGradedTests = async (
+  studentId: string
+): Promise<StudentGradedTest[]> => {
+  // Get all graded submissions for this student
+  const { data: submissionsData, error: submissionsError } = await supabase
+    .from("test_submissions")
+    .select(
+      `
+      id,
+      test_id,
+      submitted_at,
+      total_marks_obtained,
+      is_graded,
+      tests (
+        id,
+        title,
+        grade_subjects (
+          subjects_master ( name )
+        ),
+        exam_types ( name )
+      )
+    `
+    )
+    .eq("student_id", studentId)
+    .eq("is_graded", true)
+    .order("submitted_at", { ascending: false });
+
+  if (submissionsError) {
+    console.error("Error fetching graded tests:", submissionsError);
+    throw new Error("Failed to load graded tests.");
+  }
+
+  if (!submissionsData) return [];
+
+  const results: StudentGradedTest[] = [];
+
+  for (const sub of submissionsData) {
+    const test = sub.tests as any;
+    if (!test) continue;
+
+    // Get total marks for this test
+    const { data: questionsData } = await supabase
+      .from("questions")
+      .select("marks")
+      .eq("test_id", sub.test_id);
+
+    const totalMarks = questionsData?.reduce((sum, q) => sum + (q.marks || 0), 0) || 0;
+
+    let subjectName: string | undefined;
+    if (test.grade_subjects) {
+      const gradeSubject = Array.isArray(test.grade_subjects)
+        ? test.grade_subjects[0]
+        : test.grade_subjects;
+      if (gradeSubject) {
+        const master = Array.isArray(gradeSubject.subjects_master)
+          ? gradeSubject.subjects_master[0]
+          : gradeSubject.subjects_master;
+        subjectName = master?.name;
+      }
+    }
+
+    const examTypeName = Array.isArray(test.exam_types)
+      ? test.exam_types[0]?.name
+      : test.exam_types?.name;
+
+    const marksObtained = sub.total_marks_obtained || 0;
+    const percentage = totalMarks > 0 ? Math.round((marksObtained / totalMarks) * 100) : 0;
+
+    results.push({
+      testId: sub.test_id,
+      testTitle: test.title,
+      subjectName,
+      examTypeName,
+      submittedAt: sub.submitted_at,
+      totalMarks,
+      marksObtained,
+      percentage,
+    });
+  }
+
+  return results;
+};
+
+// ==================== GET STUDENTS IN CLASS ====================
+
+export interface ClassStudentInfo {
+  id: string;
+  name: string;
+  rollNo: string;
+}
+
+export const getStudentsInClass = async (
+  classId: string
+): Promise<ClassStudentInfo[]> => {
+  const { data, error } = await supabase
+    .from("students")
+    .select(
+      `
+      id,
+      roll_number,
+      profiles (
+        name
+      )
+    `
+    )
+    .eq("class_id", classId)
+    .eq("is_active", true)
+    .order("roll_number", { ascending: true });
+
+  if (error) {
+    console.error("Error fetching students:", error);
+    throw new Error("Failed to load students.");
+  }
+
+  if (!data) return [];
+
+  return data.map((student: any) => {
+    const profile = Array.isArray(student.profiles)
+      ? student.profiles[0]
+      : student.profiles;
+
+    return {
+      id: student.id,
+      name: profile?.name || "Unknown",
+      rollNo: student.roll_number || "",
+    };
+  });
+};
+
+// ==================== TEACHER GRADING ====================
+
+// Interface for grading queue item
+export interface GradingQueueItem {
+  testId: string;
+  testTitle: string;
+  className: string;
+  subjectName?: string;
+  examTypeName?: string;
+  totalSubmissions: number;
+  gradedCount: number;
+  pendingCount: number;
+  createdAt: string;
+}
+
+// Get grading queue for teacher (tests with pending submissions)
+export const getTeacherGradingQueue = async (
+  teacherId: string
+): Promise<GradingQueueItem[]> => {
+  // Get tests created by this teacher
+  const { data: testsData, error: testsError } = await supabase
+    .from("tests")
+    .select(
+      `
+      id,
+      title,
+      created_at,
+      is_published,
+      classes ( name ),
+      grade_subjects (
+        subjects_master ( name )
+      ),
+      exam_types ( name )
+    `
+    )
+    .eq("teacher_id", teacherId)
+    .eq("is_published", true)
+    .order("created_at", { ascending: false });
+
+  if (testsError) {
+    console.error("Error fetching tests for grading:", testsError);
+    throw new Error("Failed to load grading queue.");
+  }
+
+  if (!testsData) return [];
+
+  const queueItems: GradingQueueItem[] = [];
+
+  for (const test of testsData) {
+    // Get submission counts
+    const { data: submissions } = await supabase
+      .from("test_submissions")
+      .select("id, is_graded")
+      .eq("test_id", test.id);
+
+    const totalSubmissions = submissions?.length || 0;
+    if (totalSubmissions === 0) continue; // Skip tests with no submissions
+
+    const gradedCount = submissions?.filter((s) => s.is_graded).length || 0;
+    const pendingCount = totalSubmissions - gradedCount;
+
+    const className = Array.isArray(test.classes)
+      ? test.classes[0]?.name
+      : (test.classes as any)?.name;
+
+    let subjectName: string | undefined;
+    if (test.grade_subjects) {
+      const gradeSubject = Array.isArray(test.grade_subjects)
+        ? test.grade_subjects[0]
+        : test.grade_subjects;
+      if (gradeSubject) {
+        const master = Array.isArray((gradeSubject as any).subjects_master)
+          ? (gradeSubject as any).subjects_master[0]
+          : (gradeSubject as any).subjects_master;
+        subjectName = master?.name;
+      }
+    }
+
+    const examTypeName = Array.isArray(test.exam_types)
+      ? test.exam_types[0]?.name
+      : (test.exam_types as any)?.name;
+
+    queueItems.push({
+      testId: test.id,
+      testTitle: test.title,
+      className: className || "Unknown",
+      subjectName,
+      examTypeName,
+      totalSubmissions,
+      gradedCount,
+      pendingCount,
+      createdAt: test.created_at,
+    });
+  }
+
+  return queueItems;
+};
+
+// Interface for student submission to grade
+export interface SubmissionToGrade {
+  submissionId: string;
+  studentId: string;
+  studentName: string;
+  studentRollNo: string;
+  submittedAt: string;
+  isGraded: boolean;
+  totalMarksObtained: number;
+  answers: {
+    answerId: string;
+    questionId: string;
+    questionText: string;
+    questionType: QuestionType;
+    questionMarks: number;
+    chapter?: string;
+    topic?: string;
+    expectedAnswerText?: string;
+    // MCQ specific
+    options: string[];
+    selectedOptionIndex: number | null;
+    correctOptionIndex: number | null;
+    // Subjective specific
+    subjectiveAnswerText?: string;
+    marksAwarded: number;
+  }[];
+}
+
+// Get submissions for a test (for teacher grading)
+export const getTestSubmissionsForGrading = async (
+  testId: string
+): Promise<SubmissionToGrade[]> => {
+  // Get all submissions for this test
+  const { data: submissionsData, error: submissionsError } = await supabase
+    .from("test_submissions")
+    .select(
+      `
+      id,
+      student_id,
+      submitted_at,
+      is_graded,
+      total_marks_obtained,
+      students (
+        id,
+        profiles ( name ),
+        roll_number
+      )
+    `
+    )
+    .eq("test_id", testId)
+    .order("submitted_at", { ascending: true });
+
+  if (submissionsError) {
+    console.error("Error fetching submissions:", submissionsError);
+    throw new Error("Failed to load submissions.");
+  }
+
+  if (!submissionsData) return [];
+
+  // Get questions for this test (including question_type and expected_answer_text)
+  const { data: questionsData } = await supabase
+    .from("questions")
+    .select("id, question_text, marks, chapter, topic, question_type, correct_option_index, expected_answer_text")
+    .eq("test_id", testId);
+
+  const submissions: SubmissionToGrade[] = [];
+
+  for (const sub of submissionsData) {
+    // Get answers for this submission (including subjective_answer_text)
+    const { data: answersData } = await supabase
+      .from("student_answers")
+      .select("id, question_id, student_selected_option_index, subjective_answer_text, marks_awarded")
+      .eq("submission_id", sub.id);
+
+    const answers: SubmissionToGrade["answers"] = [];
+
+    for (const question of questionsData || []) {
+      const answer = answersData?.find((a) => a.question_id === question.id);
+      const questionType = (question.question_type as QuestionType) || "MCQ";
+      const isMCQ = questionType === "MCQ";
+
+      // Get options only for MCQ questions
+      let options: string[] = [];
+      if (isMCQ) {
+        const { data: optionsData } = await supabase
+          .from("question_options")
+          .select("option_index, option_text")
+          .eq("question_id", question.id)
+          .order("option_index", { ascending: true });
+        options = (optionsData || []).map((o) => o.option_text);
+      }
+
+      answers.push({
+        answerId: answer?.id || "",
+        questionId: question.id,
+        questionText: question.question_text,
+        questionType,
+        questionMarks: question.marks,
+        chapter: question.chapter,
+        topic: question.topic,
+        expectedAnswerText: question.expected_answer_text || undefined,
+        options,
+        selectedOptionIndex: isMCQ ? (answer?.student_selected_option_index ?? null) : null,
+        correctOptionIndex: isMCQ ? question.correct_option_index : null,
+        subjectiveAnswerText: !isMCQ ? (answer?.subjective_answer_text || undefined) : undefined,
+        marksAwarded: answer?.marks_awarded || 0,
+      });
+    }
+
+    const student = sub.students as any;
+    const studentName = student?.profiles?.name || "Unknown";
+    const studentRollNo = student?.roll_number || "";
+
+    submissions.push({
+      submissionId: sub.id,
+      studentId: sub.student_id,
+      studentName,
+      studentRollNo,
+      submittedAt: sub.submitted_at,
+      isGraded: sub.is_graded,
+      totalMarksObtained: sub.total_marks_obtained || 0,
+      answers,
+    });
+  }
+
+  return submissions;
+};
+
+// Grade a single answer
+export const gradeStudentAnswer = async (
+  answerId: string,
+  marksAwarded: number
+): Promise<void> => {
+  const { error } = await supabase
+    .from("student_answers")
+    .update({ marks_awarded: marksAwarded })
+    .eq("id", answerId);
+
+  if (error) {
+    console.error("Error grading answer:", error);
+    throw new Error("Failed to save grade.");
+  }
+};
+
+// Finalize grading for a submission (calculate total and mark as graded)
+export const finalizeSubmissionGrading = async (
+  submissionId: string
+): Promise<void> => {
+  // Get all answers for this submission
+  const { data: answersData, error: answersError } = await supabase
+    .from("student_answers")
+    .select("marks_awarded")
+    .eq("submission_id", submissionId);
+
+  if (answersError) {
+    console.error("Error fetching answers:", answersError);
+    throw new Error("Failed to calculate total.");
+  }
+
+  const totalMarks = (answersData || []).reduce(
+    (sum, a) => sum + (a.marks_awarded || 0),
+    0
+  );
+
+  // Update submission
+  const { error: updateError } = await supabase
+    .from("test_submissions")
+    .update({
+      is_graded: true,
+      total_marks_obtained: totalMarks,
+    })
+    .eq("id", submissionId);
+
+  if (updateError) {
+    console.error("Error finalizing submission:", updateError);
+    throw new Error("Failed to finalize grading.");
+  }
+};
+
 // ==================== VOICE NOTES ====================
 
 export interface TeacherVoiceNote {
@@ -1810,16 +2818,17 @@ export const getAttendanceForDate = async (
 
 // Save attendance records for a date
 export const saveAttendance = async (
-  classId: string,
   attendanceDate: string,
   students: StudentAttendance[],
   teacherId: string
 ): Promise<void> => {
-  // Delete existing attendance records for this date (to avoid duplicates)
+  // Delete existing attendance records for the specific students on this date (to avoid duplicates)
+  const studentIds = students.map((s) => s.id);
   const { error: deleteError } = await supabase
     .from("attendance")
     .delete()
-    .eq("attendance_date", attendanceDate);
+    .eq("attendance_date", attendanceDate)
+    .in("student_id", studentIds);
 
   if (deleteError) {
     console.error("Error clearing old attendance:", deleteError);
@@ -1842,5 +2851,287 @@ export const saveAttendance = async (
   if (insertError) {
     console.error("Error saving attendance records:", insertError);
     throw new Error("Failed to save attendance records.");
+  }
+};
+
+// Get student attendance statistics by subject
+export const getStudentAttendanceBySubject = async (
+  studentId: string
+): Promise<
+  Array<{
+    subject: string;
+    present: number;
+    total: number;
+    percentage: number;
+    trend: "up" | "down";
+    recentClasses: Array<{ date: string; status: "present" | "absent" }>;
+  }>
+> => {
+  try {
+    // First get student's class and grade level
+    const { data: studentData, error: studentError } = await supabase
+      .from("students")
+      .select(
+        `
+        class_id,
+        classes (
+          grade_level_id
+        )
+      `
+      )
+      .eq("id", studentId)
+      .single();
+
+    if (studentError) {
+      console.error("Error fetching student info:", studentError);
+      return [];
+    }
+
+    if (!studentData) {
+      return [];
+    }
+
+    const classData = Array.isArray(studentData.classes)
+      ? studentData.classes[0]
+      : studentData.classes;
+    const gradeLevel = classData?.grade_level_id;
+
+    // Get all subjects for this grade level
+    const { data: gradeSubjects, error: subjectsError } = await supabase
+      .from("grade_subjects")
+      .select(
+        `
+        id,
+        subjects_master (
+          name
+        )
+      `
+      )
+      .eq("grade_level_id", gradeLevel);
+
+    if (subjectsError) {
+      console.error("Error fetching subjects:", subjectsError);
+      return [];
+    }
+
+    if (!gradeSubjects) {
+      return [];
+    }
+
+    // Fetch attendance for all dates for this student
+    const { data: attendanceData, error: attendanceError } = await supabase
+      .from("attendance")
+      .select("attendance_date, status")
+      .eq("student_id", studentId)
+      .order("attendance_date", { ascending: false });
+
+    if (attendanceError) {
+      console.error("Error fetching attendance:", attendanceError);
+      return [];
+    }
+
+    // Process each subject
+    const subjectAttendance = gradeSubjects.map(
+      (gs: {
+        id: string;
+        subjects_master: NamedEntity | NamedEntity[] | null;
+      }) => {
+        const subjectMaster = Array.isArray(gs.subjects_master)
+          ? gs.subjects_master[0]
+          : gs.subjects_master;
+        const subjectName = subjectMaster?.name || "Unknown Subject";
+
+        const totalRecords = attendanceData?.length || 0;
+        const presentRecords =
+          attendanceData?.filter((a) => a.status === "present").length || 0;
+
+        const percentage =
+          totalRecords > 0 ? (presentRecords / totalRecords) * 100 : 0;
+
+        // Get recent 5 classes
+        const recentClasses = (attendanceData || [])
+          .slice(0, 5)
+          .map((record) => ({
+            date: record.attendance_date,
+            status: record.status as "present" | "absent",
+          }));
+
+        // Determine trend (compare first 50% vs last 50%)
+        const midpoint = Math.floor((attendanceData?.length || 0) / 2);
+        const firstHalf = (attendanceData || [])
+          .slice(0, midpoint)
+          .filter((a) => a.status === "present").length;
+        const secondHalf = (attendanceData || [])
+          .slice(midpoint)
+          .filter((a) => a.status === "present").length;
+
+        const firstHalfPercentage =
+          midpoint > 0 ? (firstHalf / midpoint) * 100 : 0;
+        const secondHalfPercentage =
+          attendanceData && attendanceData.length - midpoint > 0
+            ? (secondHalf / (attendanceData.length - midpoint)) * 100
+            : 0;
+
+        const trend: "up" | "down" =
+          secondHalfPercentage >= firstHalfPercentage ? "up" : "down";
+
+        return {
+          subject: subjectName,
+          present: presentRecords,
+          total: totalRecords,
+          percentage: Number.isNaN(percentage) ? 0 : percentage,
+          trend,
+          recentClasses,
+        };
+      }
+    );
+
+    return subjectAttendance;
+  } catch (error) {
+    console.error("Error in getStudentAttendanceBySubject:", error);
+    return [];
+  }
+};
+
+// Get overall student attendance percentage
+export const getOverallAttendancePercentage = async (
+  studentId: string
+): Promise<number> => {
+  try {
+    const { data, error } = await supabase
+      .from("attendance")
+      .select("status")
+      .eq("student_id", studentId);
+
+    if (error) {
+      console.error("Error fetching overall attendance:", error);
+      return 0;
+    }
+
+    if (!data || data.length === 0) {
+      return 0;
+    }
+
+    const presentCount = data.filter((a) => a.status === "present").length;
+    const percentage = (presentCount / data.length) * 100;
+
+    return Number.isNaN(percentage) ? 0 : percentage;
+  } catch (error) {
+    console.error("Error in getOverallAttendancePercentage:", error);
+    return 0;
+  }
+};
+
+// Get count of pending tests for a student (published tests not yet attempted)
+export const getStudentPendingTestsCount = async (
+  studentId: string
+): Promise<number> => {
+  try {
+    // Get student's class_id
+    const { data: studentData, error: studentError } = await supabase
+      .from("students")
+      .select("class_id")
+      .eq("id", studentId)
+      .single();
+
+    if (studentError || !studentData) {
+      console.error("Error fetching student:", studentError);
+      return 0;
+    }
+
+    // Get all published tests for this class
+    const { data: testsData, error: testsError } = await supabase
+      .from("tests")
+      .select("id")
+      .eq("class_id", studentData.class_id)
+      .eq("is_published", true);
+
+    if (testsError || !testsData) {
+      console.error("Error fetching tests:", testsError);
+      return 0;
+    }
+
+    if (testsData.length === 0) {
+      return 0;
+    }
+
+    // Get tests already submitted by this student
+    const { data: submissionsData, error: submissionsError } = await supabase
+      .from("test_submissions")
+      .select("test_id")
+      .eq("student_id", studentId);
+
+    if (submissionsError) {
+      console.error("Error fetching submissions:", submissionsError);
+      return 0;
+    }
+
+    const submittedTestIds = new Set((submissionsData || []).map(s => s.test_id));
+    const pendingCount = testsData.filter(t => !submittedTestIds.has(t.id)).length;
+
+    return pendingCount;
+  } catch (error) {
+    console.error("Error in getStudentPendingTestsCount:", error);
+    return 0;
+  }
+};
+
+// Get student's average marks percentage across all graded tests
+export const getStudentAverageMarksPercentage = async (
+  studentId: string
+): Promise<number> => {
+  try {
+    // Get all graded submissions for this student
+    const { data: submissionsData, error: submissionsError } = await supabase
+      .from("test_submissions")
+      .select(`
+        id,
+        total_marks_obtained,
+        is_graded,
+        tests (
+          id
+        )
+      `)
+      .eq("student_id", studentId)
+      .eq("is_graded", true);
+
+    if (submissionsError) {
+      console.error("Error fetching submissions:", submissionsError);
+      return 0;
+    }
+
+    if (!submissionsData || submissionsData.length === 0) {
+      return 0;
+    }
+
+    let totalMarksObtained = 0;
+    let totalMaxMarks = 0;
+
+    for (const submission of submissionsData) {
+      const test = submission.tests as any;
+      if (!test) continue;
+
+      // Get total marks for this test
+      const { data: questionsData } = await supabase
+        .from("questions")
+        .select("marks")
+        .eq("test_id", test.id);
+
+      if (questionsData) {
+        const testMaxMarks = questionsData.reduce((sum, q) => sum + (q.marks || 0), 0);
+        totalMaxMarks += testMaxMarks;
+        totalMarksObtained += submission.total_marks_obtained || 0;
+      }
+    }
+
+    if (totalMaxMarks === 0) {
+      return 0;
+    }
+
+    const percentage = (totalMarksObtained / totalMaxMarks) * 100;
+    return Number.isNaN(percentage) ? 0 : Math.round(percentage * 10) / 10;
+  } catch (error) {
+    console.error("Error in getStudentAverageMarksPercentage:", error);
+    return 0;
   }
 };

@@ -1,36 +1,109 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { Play, CheckCircle, Clock, Calendar, Award, FileText } from "lucide-react";
+import { Play, Clock, CheckCircle, FileCheck, Eye, ArrowLeft, Calendar, Award, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { mcqStore, Test, Submission } from "@/lib/mcq-store";
-import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { motion } from "framer-motion";
+import { toast } from "sonner";
+import { useAuth } from "@/auth/AuthContext";
+import { getStudentData, getStudentTests, StudentTest } from "@/services/academic";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const StudentTests = () => {
     const navigate = useNavigate();
-    const [tests, setTests] = useState<Test[]>([]);
-    const [submissions, setSubmissions] = useState<Submission[]>([]);
-    const studentId = "student-1"; // Mock student ID
+    const { profile, profileLoading } = useAuth();
+    const [tests, setTests] = useState<StudentTest[]>([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Only show published tests
-        setTests(mcqStore.getTests().filter(t => t.isPublished));
-        setSubmissions(mcqStore.getStudentSubmissions(studentId));
-    }, []);
+        const fetchTests = async () => {
+            if (profileLoading) return;
 
-    const getSubmission = (testId: string) => submissions.find(s => s.testId === testId);
+            if (!profile) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                // First get student data to get class_id
+                const studentData = await getStudentData(profile.id);
+                if (!studentData) {
+                    toast.error("Student data not found");
+                    setLoading(false);
+                    return;
+                }
+
+                // Fetch published tests for student's class (with submission status)
+                const testsData = await getStudentTests(studentData.class_id, profile.id);
+                setTests(testsData);
+            } catch (error: any) {
+                console.error("Error fetching tests:", error);
+                toast.error("Failed to load tests");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchTests();
+    }, [profile, profileLoading]);
+
+    const getStatusBadge = (status: StudentTest["submissionStatus"]) => {
+        switch (status) {
+            case "graded":
+                return <Badge className="bg-green-500/20 text-green-500 border-green-500/50">Graded</Badge>;
+            case "pending":
+                return <Badge className="bg-yellow-500/20 text-yellow-500 border-yellow-500/50">Awaiting Results</Badge>;
+            case "not_started":
+                return <Badge className="bg-blue-500/20 text-blue-500 border-blue-500/50">Not Started</Badge>;
+            default:
+                return null;
+        }
+    };
+
+    const getActionButton = (test: StudentTest) => {
+        switch (test.submissionStatus) {
+            case "graded":
+                return (
+                    <Button className="w-full mt-4" variant="outline" onClick={() => navigate(`/student/tests/take/${test.id}`)}>
+                        <Eye className="w-4 h-4 mr-2" /> View Results
+                    </Button>
+                );
+            case "pending":
+                return (
+                    <Button className="w-full mt-4" variant="secondary" disabled>
+                        <FileCheck className="w-4 h-4 mr-2" /> Submitted
+                    </Button>
+                );
+            case "not_started":
+                return (
+                    <Button className="w-full mt-4" onClick={() => navigate(`/student/tests/take/${test.id}`)}>
+                        <Play className="w-4 h-4 mr-2" /> Start Test
+                    </Button>
+                );
+            default:
+                return null;
+        }
+    };
+
+    if (loading || profileLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <LoadingSpinner />
+            </div>
+        );
+    }
 
     // Categorize tests
-    const upcomingTests = tests.filter(test => !getSubmission(test.id));
-    const activeTests = tests.filter(test => !getSubmission(test.id));
-    const completedTests = tests.filter(test => getSubmission(test.id));
+    // For now, we'll treat "not_started" as Active.
+    // "graded" and "pending" as Results.
+    // "Upcoming" will be empty as we don't have start dates yet.
+    const activeTests = tests.filter(test => test.submissionStatus === "not_started");
+    const completedTests = tests.filter(test => test.submissionStatus === "graded" || test.submissionStatus === "pending");
+    const upcomingTests: StudentTest[] = []; // Placeholder
 
-    const renderTestCard = (test: Test, index: number, showStartButton: boolean = true) => {
-        const submission = getSubmission(test.id);
-        const totalMarks = test.questions.reduce((acc, q) => acc + q.marks, 0);
-
+    const renderTestCard = (test: StudentTest, index: number) => {
         return (
             <motion.div
                 key={test.id}
@@ -38,15 +111,18 @@ const StudentTests = () => {
                 animate={{ opacity: 1, scale: 1 }}
                 transition={{ delay: index * 0.1 }}
             >
-                <Card className={`glass-card hover:border-primary transition-colors ${submission ? 'border-green-500/30' : ''}`}>
+                <Card className="glass-card hover:border-primary transition-colors">
                     <CardHeader>
                         <CardTitle className="flex justify-between items-start">
                             <span className="truncate">{test.title}</span>
-                            {submission && (
-                                <Badge variant="secondary" className="bg-green-500/20 text-green-500">
-                                    Completed
-                                </Badge>
-                            )}
+                            <div className="flex flex-col items-end gap-1">
+                                {test.subjectName && (
+                                    <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary">
+                                        {test.subjectName}
+                                    </span>
+                                )}
+                                {getStatusBadge(test.submissionStatus)}
+                            </div>
                         </CardTitle>
                         <CardDescription>
                             {test.description || "No description provided."}
@@ -60,50 +136,27 @@ const StudentTests = () => {
                             </div>
                             <div className="flex items-center gap-1">
                                 <FileText className="w-4 h-4" />
-                                {test.questions.length} Questions
+                                {test.questionCount} Questions
                             </div>
                             <div className="flex items-center gap-1">
                                 <Award className="w-4 h-4" />
-                                {totalMarks} Marks
+                                {test.totalMarks} Marks
                             </div>
                         </div>
 
-                        {submission ? (
-                            <div className="mt-4 p-4 bg-muted/50 rounded-lg border border-green-500/20">
-                                <div className="flex justify-between items-center mb-3">
-                                    <span className="text-sm font-medium">Your Score</span>
-                                    <span className="text-2xl font-bold text-green-500">
-                                        {submission.score} / {totalMarks}
+                        {/* Show score if graded */}
+                        {test.submissionStatus === "graded" && test.marksObtained !== undefined && (
+                            <div className="p-3 rounded-lg bg-green-500/10 border border-green-500/30">
+                                <div className="flex justify-between items-center">
+                                    <span className="text-sm text-muted-foreground">Your Score</span>
+                                    <span className="text-xl font-bold text-green-500">
+                                        {test.marksObtained} / {test.totalMarks}
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center mb-3">
-                                    <span className="text-sm text-muted-foreground">Percentage</span>
-                                    <span className="text-lg font-semibold">
-                                        {((submission.score / totalMarks) * 100).toFixed(1)}%
-                                    </span>
-                                </div>
-                                <Button
-                                    className="w-full"
-                                    variant="outline"
-                                    onClick={() => navigate(`/student/tests/take/${test.id}`)}
-                                >
-                                    <CheckCircle className="w-4 h-4 mr-2" />
-                                    View Detailed Report
-                                </Button>
-                            </div>
-                        ) : showStartButton ? (
-                            <Button
-                                className="w-full mt-4"
-                                onClick={() => navigate(`/student/tests/take/${test.id}`)}
-                            >
-                                <Play className="w-4 h-4 mr-2" /> Start Test
-                            </Button>
-                        ) : (
-                            <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20 text-center">
-                                <Calendar className="w-5 h-5 mx-auto mb-2 text-blue-500" />
-                                <p className="text-sm text-muted-foreground">Available Soon</p>
                             </div>
                         )}
+
+                        {getActionButton(test)}
                     </CardContent>
                 </Card>
             </motion.div>
@@ -115,9 +168,15 @@ const StudentTests = () => {
             <motion.div
                 initial={{ opacity: 0, y: -20 }}
                 animate={{ opacity: 1, y: 0 }}
+                className="flex items-center gap-4"
             >
-                <h1 className="text-4xl font-bold neon-text mb-2">My Assessments 📝</h1>
-                <p className="text-muted-foreground">Take tests and view your progress</p>
+                <Button variant="ghost" size="icon" onClick={() => navigate("/student")}>
+                    <ArrowLeft className="w-6 h-6" />
+                </Button>
+                <div>
+                    <h1 className="text-4xl font-bold neon-text mb-2">My Assessments 📝</h1>
+                    <p className="text-muted-foreground">Take tests and view your progress</p>
+                </div>
             </motion.div>
 
             <Tabs defaultValue="active" className="space-y-6">
@@ -140,7 +199,7 @@ const StudentTests = () => {
                 <TabsContent value="upcoming" className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {upcomingTests.length > 0 ? (
-                            upcomingTests.map((test, index) => renderTestCard(test, index, false))
+                            upcomingTests.map((test, index) => renderTestCard(test, index))
                         ) : (
                             <div className="col-span-full text-center py-12">
                                 <Calendar className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -154,7 +213,7 @@ const StudentTests = () => {
                 <TabsContent value="active" className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {activeTests.length > 0 ? (
-                            activeTests.map((test, index) => renderTestCard(test, index, true))
+                            activeTests.map((test, index) => renderTestCard(test, index))
                         ) : (
                             <div className="col-span-full text-center py-12">
                                 <Play className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
@@ -168,7 +227,7 @@ const StudentTests = () => {
                 <TabsContent value="results" className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                         {completedTests.length > 0 ? (
-                            completedTests.map((test, index) => renderTestCard(test, index, false))
+                            completedTests.map((test, index) => renderTestCard(test, index))
                         ) : (
                             <div className="col-span-full text-center py-12">
                                 <CheckCircle className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />

@@ -1,47 +1,34 @@
 import { motion } from "framer-motion";
-import { ArrowLeft, Upload, Save, Award, X } from "lucide-react";
+import { ArrowLeft, Upload, Save, Award, CheckCircle, Users, FileText } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { useNavigate } from "react-router-dom";
-import { useEffect, useState, useMemo } from "react"; // Added useMemo
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { useEffect, useState } from "react";
 import { toast } from "sonner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   getExamTypes,
   getSubjects,
   getTeacherClasses,
+  getTeacherGradingQueue,
+  getTestSubmissionsForGrading,
+  gradeStudentAnswer,
+  finalizeSubmissionGrading,
+  GradingQueueItem,
+  SubmissionToGrade,
+  getStudentsInClass,
+  ClassStudentInfo,
 } from "@/services/academic";
 import { FlattenedClass } from "@/schemas/academic";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { useAuth } from "@/auth/AuthContext";
-
-// Define StudentMark interface for clarity
-interface StudentMark {
-  id: number;
-  name: string;
-  rollNo: string;
-  marks: string;
-  maxMarks: string;
-}
-
-// New interfaces for question-wise grading
-interface Question {
-  id: number;
-  questionNumber: number;
-  chapter: string;
-  topic: string;
-  maxMarks: number;
-}
-
-interface StudentQuestionGrade {
-  studentId: number;
-  questionGrades: { [questionId: number]: number };
-}
-
+import { Badge } from "@/components/ui/badge";
+import { Progress } from "@/components/ui/progress";
 
 const TeacherMarks = () => {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { profile, profileLoading } = useAuth();
 
   // --- STATE INITIALIZATION ---
@@ -51,93 +38,23 @@ const TeacherMarks = () => {
   const [loading, setLoading] = useState(true);
 
   // State for selected objects
-  const [selectedClass, setSelectedClass] = useState<
-    FlattenedClass | undefined
-  >(undefined); // Allow undefined/null initially
+  const [selectedClass, setSelectedClass] = useState<FlattenedClass | undefined>(undefined);
   const [selectedSubject, setSelectedSubject] = useState("");
   const [examType, setExamType] = useState("");
 
-  // Dummy student data
-  const [students, setStudents] = useState<StudentMark[]>([
-    { id: 1, name: "John Smith", rollNo: "101", marks: "85", maxMarks: "100" },
-    {
-      id: 2,
-      name: "Emma Johnson",
-      rollNo: "102",
-      marks: "92",
-      maxMarks: "100",
-    },
-    {
-      id: 3,
-      name: "Michael Brown",
-      rollNo: "103",
-      marks: "78",
-      maxMarks: "100",
-    },
-    {
-      id: 4,
-      name: "Sophia Davis",
-      rollNo: "104",
-      marks: "88",
-      maxMarks: "100",
-    },
-    {
-      id: 5,
-      name: "William Wilson",
-      rollNo: "105",
-      marks: "95",
-      maxMarks: "100",
-    },
-    {
-      id: 6,
-      name: "Olivia Martinez",
-      rollNo: "106",
-      marks: "82",
-      maxMarks: "100",
-    },
-    {
-      id: 7,
-      name: "James Anderson",
-      rollNo: "107",
-      marks: "90",
-      maxMarks: "100",
-    },
-    {
-      id: 8,
-      name: "Isabella Taylor",
-      rollNo: "108",
-      marks: "87",
-      maxMarks: "100",
-    },
-    {
-      id: 9,
-      name: "Benjamin Thomas",
-      rollNo: "109",
-      marks: "93",
-      maxMarks: "100",
-    },
-    { id: 10, name: "Mia Garcia", rollNo: "110", marks: "79", maxMarks: "100" },
-  ]);
+  // Real students from database
+  const [classStudents, setClassStudents] = useState<ClassStudentInfo[]>([]);
+  const [studentsLoading, setStudentsLoading] = useState(false);
 
-  // New state for question-wise grading
-  const [questions, setQuestions] = useState<Question[]>([
-    { id: 1, questionNumber: 1, chapter: "Algebra", topic: "Linear Equations", maxMarks: 5 },
-    { id: 2, questionNumber: 2, chapter: "Algebra", topic: "Quadratic Equations", maxMarks: 10 },
-    { id: 3, questionNumber: 3, chapter: "Geometry", topic: "Triangles", maxMarks: 8 },
-    { id: 4, questionNumber: 4, chapter: "Geometry", topic: "Circles", maxMarks: 7 },
-    { id: 5, questionNumber: 5, chapter: "Calculus", topic: "Differentiation", maxMarks: 10 },
-  ]);
+  // Test-based grading state
+  const [gradingQueue, setGradingQueue] = useState<GradingQueueItem[]>([]);
+  const [selectedTestId, setSelectedTestId] = useState<string | null>(searchParams.get("testId"));
+  const [submissions, setSubmissions] = useState<SubmissionToGrade[]>([]);
+  const [selectedSubmissionId, setSelectedSubmissionId] = useState<string | null>(null);
+  const [gradingLoading, setGradingLoading] = useState(false);
+  const [localGrades, setLocalGrades] = useState<Record<string, number>>({});
 
-  const [studentGrades, setStudentGrades] = useState<StudentQuestionGrade[]>(
-    students.map(student => ({
-      studentId: student.id,
-      questionGrades: {}
-    }))
-  );
-
-  const [selectedStudentId, setSelectedStudentId] = useState<number | null>(null);
-
-  // --- EFFECT 1: INITIAL DATA LOAD (Classes & Exam Types) ---
+  // --- EFFECT 1: INITIAL DATA LOAD ---
   useEffect(() => {
     const fetchInitialData = async () => {
       if (profileLoading) return;
@@ -151,29 +68,28 @@ const TeacherMarks = () => {
       }
 
       try {
-        const [classResponse, examResponse] = await Promise.all([
+        const [classResponse, examResponse, queueResponse] = await Promise.all([
           getTeacherClasses(profile.id),
           getExamTypes(),
+          getTeacherGradingQueue(profile.id),
         ]);
 
         if (classResponse) {
           setClasses(classResponse);
-
           if (classResponse.length > 0) {
-            setSelectedClass(classResponse[0]); // Set the default class object
-          } else {
-            setSelectedClass(undefined);
+            setSelectedClass(classResponse[0]);
           }
         }
 
         if (examResponse) {
           setExamTypes(examResponse);
-          // FIX 1: Set default exam type from fetched data
           if (examResponse.length > 0) {
             setExamType(examResponse[0]);
-          } else {
-            setExamType("");
           }
+        }
+
+        if (queueResponse) {
+          setGradingQueue(queueResponse);
         }
       } catch (error) {
         toast.error("Failed to load core academic data.");
@@ -186,134 +102,171 @@ const TeacherMarks = () => {
     fetchInitialData();
   }, [profile, profileLoading]);
 
-  // --- EFFECT 2: DYNAMIC SUBJECT LOAD (DEPENDS ON selectedClass) ---
+  // --- EFFECT 2: LOAD STUDENTS WHEN CLASS CHANGES ---
   useEffect(() => {
-    if (selectedClass) {
-      const fetchSubjectsByGrade = async () => {
-        const gradeId = selectedClass.grade_id;
+    const fetchStudentsAndSubjects = async () => {
+      if (!selectedClass) return;
 
-        try {
-          const subjectResponse = await getSubjects(gradeId);
-          if (subjectResponse) {
-            setSubjects(subjectResponse);
-            // FIX 2: Set the default subject based on the new class's curriculum
-            if (subjectResponse.length > 0) {
-              setSelectedSubject(subjectResponse[0]);
-            } else {
-              setSelectedSubject(""); // Clear if no subjects found
-            }
+      setStudentsLoading(true);
+      try {
+        const [studentsData, subjectsData] = await Promise.all([
+          getStudentsInClass(selectedClass.class_id),
+          getSubjects(selectedClass.grade_id),
+        ]);
+
+        setClassStudents(studentsData);
+        
+        if (subjectsData) {
+          setSubjects(subjectsData);
+          if (subjectsData.length > 0) {
+            setSelectedSubject(subjectsData[0]);
           }
-        } catch (error) {
-          console.error(
-            `Error fetching subjects for Grade ID ${gradeId}:`,
-            error
-          );
-          setSubjects([]);
-          setSelectedSubject("");
         }
-      };
+      } catch (error) {
+        console.error("Error fetching students/subjects:", error);
+        toast.error("Failed to load students");
+      } finally {
+        setStudentsLoading(false);
+      }
+    };
 
-      fetchSubjectsByGrade();
-    }
-  }, [selectedClass]); // Reruns whenever selectedClass object changes
+    fetchStudentsAndSubjects();
+  }, [selectedClass]);
+
+  // --- EFFECT 3: LOAD SUBMISSIONS WHEN TEST IS SELECTED ---
+  useEffect(() => {
+    const fetchSubmissions = async () => {
+      if (!selectedTestId) {
+        setSubmissions([]);
+        return;
+      }
+
+      setGradingLoading(true);
+      try {
+        const subs = await getTestSubmissionsForGrading(selectedTestId);
+        setSubmissions(subs);
+        
+        // Auto-select first ungraded submission (pass subs directly since state update is async)
+        const firstUngraded = subs.find(s => !s.isGraded);
+        if (firstUngraded) {
+          handleSelectSubmission(firstUngraded.submissionId, subs);
+        } else if (subs.length > 0) {
+          handleSelectSubmission(subs[0].submissionId, subs);
+        }
+      } catch (error) {
+        console.error("Error fetching submissions:", error);
+        toast.error("Failed to load submissions");
+      } finally {
+        setGradingLoading(false);
+      }
+    };
+
+    fetchSubmissions();
+  }, [selectedTestId]);
 
   // --- HANDLERS ---
-
   const handleClassChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const classId = e.target.value;
     const cls = classes.find((c) => c.class_id === classId);
-
-    // This setter triggers useEffect 2, which loads the new subjects
     if (cls) setSelectedClass(cls);
   };
 
-  const updateMarks = (studentId: number, marks: string) => {
-    setStudents(
-      students.map((student) =>
-        student.id === studentId ? { ...student, marks } : student
-      )
-    );
-  };
-
-  const submitMarks = () => {
-    if (!selectedClass || !selectedSubject || !examType) {
-      toast.error(
-        "Please select a valid Class, Subject, and Exam Type before publishing."
-      );
-      return;
+  const handleSelectSubmission = (submissionId: string, submissionsList?: typeof submissions) => {
+    setSelectedSubmissionId(submissionId);
+    const list = submissionsList || submissions;
+    const submission = list.find(s => s.submissionId === submissionId);
+    if (submission) {
+      const grades: Record<string, number> = {};
+      submission.answers.forEach(a => {
+        grades[a.answerId] = a.marksAwarded;
+      });
+      setLocalGrades(grades);
     }
-    toast.success(
-      `Marks published for ${selectedClass.class_name}, Subject: ${selectedSubject} (${examType})`
-    );
   };
 
-  // New handlers for question-wise grading
-  const updateQuestionGrade = (studentId: number, questionId: number, marks: number) => {
-    setStudentGrades(prevGrades =>
-      prevGrades.map(grade =>
-        grade.studentId === studentId
-          ? {
-            ...grade,
-            questionGrades: {
-              ...grade.questionGrades,
-              [questionId]: marks
-            }
-          }
-          : grade
-      )
-    );
+  const handleGradeChange = (answerId: string, marks: number, maxMarks: number) => {
+    const clampedMarks = Math.min(Math.max(0, marks), maxMarks);
+    setLocalGrades(prev => ({ ...prev, [answerId]: clampedMarks }));
   };
 
-  const addQuestion = () => {
-    const newId = questions.length > 0 ? Math.max(...questions.map(q => q.id)) + 1 : 1;
-    setQuestions([...questions, {
-      id: newId,
-      questionNumber: questions.length + 1,
-      chapter: "",
-      topic: "",
-      maxMarks: 0
-    }]);
+  const handleSaveGrades = async () => {
+    if (!selectedSubmissionId) return;
+
+    setGradingLoading(true);
+    try {
+      // Save each grade
+      for (const [answerId, marks] of Object.entries(localGrades)) {
+        await gradeStudentAnswer(answerId, marks);
+      }
+
+      // Finalize the submission
+      await finalizeSubmissionGrading(selectedSubmissionId);
+
+      toast.success("Grades saved successfully!");
+
+      // Refresh submissions
+      if (selectedTestId) {
+        const subs = await getTestSubmissionsForGrading(selectedTestId);
+        setSubmissions(subs);
+
+        // Move to next ungraded (pass subs directly since state update is async)
+        const nextUngraded = subs.find(s => !s.isGraded);
+        if (nextUngraded) {
+          handleSelectSubmission(nextUngraded.submissionId, subs);
+        } else {
+          setSelectedSubmissionId(null);
+          toast.success("All submissions graded!");
+        }
+
+        // Refresh grading queue
+        if (profile) {
+          const queue = await getTeacherGradingQueue(profile.id);
+          setGradingQueue(queue);
+        }
+      }
+    } catch (error: any) {
+      console.error("Error saving grades:", error);
+      toast.error(error.message || "Failed to save grades");
+    } finally {
+      setGradingLoading(false);
+    }
   };
 
-  const removeQuestion = (questionId: number) => {
-    setQuestions(questions.filter(q => q.id !== questionId));
-    setStudentGrades(prevGrades =>
-      prevGrades.map(grade => {
-        const newQuestionGrades = { ...grade.questionGrades };
-        delete newQuestionGrades[questionId];
-        return { ...grade, questionGrades: newQuestionGrades };
-      })
-    );
+  const getSelectedSubmission = (): SubmissionToGrade | undefined => {
+    return submissions.find(s => s.submissionId === selectedSubmissionId);
   };
 
-  const updateQuestion = (questionId: number, field: keyof Question, value: string | number) => {
-    setQuestions(questions.map(q =>
-      q.id === questionId ? { ...q, [field]: value } : q
-    ));
+  const calculateLocalTotal = (): number => {
+    return Object.values(localGrades).reduce((sum, marks) => sum + marks, 0);
   };
 
-  const getStudentTotal = (studentId: number): number => {
-    const studentGrade = studentGrades.find(g => g.studentId === studentId);
-    if (!studentGrade) return 0;
-    return Object.values(studentGrade.questionGrades).reduce((sum, marks) => sum + marks, 0);
+  const getSelectedTest = (): GradingQueueItem | undefined => {
+    return gradingQueue.find(t => t.testId === selectedTestId);
   };
 
-  const getTotalMaxMarks = (): number => {
-    return questions.reduce((sum, q) => sum + q.maxMarks, 0);
-  };
-
-  const classAverage = useMemo(() => {
-    if (students.length === 0) return "0.0";
+  // --- LOADING STATE ---
+  if (loading || profileLoading) {
     return (
-      students.reduce((acc, s) => acc + parseFloat(s.marks || "0"), 0) /
-      students.length
-    ).toFixed(1);
-  }, [students]);
-
-  // --- LOADING AND GUARD CLAUSES ---
-  if (loading) {
-    return <LoadingSpinner />;
+      <div className="flex items-center justify-center min-h-screen">
+        <LoadingSpinner />
+      </div>
+    );
   }
+
+  if (!selectedClass && classes.length === 0) {
+    return (
+      <div className="min-h-screen p-6 flex items-center justify-center">
+        <Card className="glass-card p-8 text-center">
+          <Users className="w-16 h-16 mx-auto mb-4 text-muted-foreground opacity-50" />
+          <h2 className="text-xl font-semibold mb-2">No Classes Assigned</h2>
+          <p className="text-muted-foreground">You don't have any classes assigned yet.</p>
+        </Card>
+      </div>
+    );
+  }
+
+  const selectedSubmission = getSelectedSubmission();
+  const selectedTest = getSelectedTest();
 
   // Check if classes were loaded but no class was selected (should only happen if classes are empty)
   if (!selectedClass) {
@@ -324,211 +277,297 @@ const TeacherMarks = () => {
     );
   }
 
-  // --- JSX RENDERING ---
   return (
     <div className="min-h-screen p-6">
       <div className="max-w-7xl mx-auto space-y-8">
-        {/* Header/Navigation */}
+        {/* Header */}
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/teacher")}
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate("/teacher")}>
             <ArrowLeft className="w-6 h-6" />
           </Button>
-          <motion.div
-            initial={{ opacity: 0, x: -20 }}
-            animate={{ opacity: 1, x: 0 }}
-          >
-            <h1 className="text-4xl font-bold neon-text">Upload Marks</h1>
-            <p className="text-muted-foreground">
-              Enter and publish student marks
-            </p>
+          <motion.div initial={{ opacity: 0, x: -20 }} animate={{ opacity: 1, x: 0 }}>
+            <h1 className="text-4xl font-bold neon-text">Grade Tests</h1>
+            <p className="text-muted-foreground">Grade student test submissions</p>
           </motion.div>
         </div>
 
-        <Tabs defaultValue="manual" className="w-full">
-          {/* Tabs List (Manual/Question-wise/Bulk) */}
+        <Tabs defaultValue="questionwise" className="w-full">
           <TabsList className="grid w-full grid-cols-3">
-            <TabsTrigger value="manual">Manual Entry</TabsTrigger>
             <TabsTrigger value="questionwise">Question-wise Grading</TabsTrigger>
+            <TabsTrigger value="manual">Manual Entry</TabsTrigger>
             <TabsTrigger value="bulk">Bulk Upload</TabsTrigger>
           </TabsList>
 
-          <TabsContent value="manual" className="space-y-6 mt-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
+          {/* Question-wise Grading Tab - Main Grading Flow */}
+          <TabsContent value="questionwise" className="space-y-6 mt-6">
+            {/* Test Selection */}
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="glass-card p-6">
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-                  {/* Class Dropdown */}
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-2 block">
-                      Class
-                    </label>
-                    <select
-                      className="w-full p-3 rounded-lg bg-muted border border-border"
-                      value={selectedClass.class_id} // Uses the selected Class object's ID
-                      onChange={handleClassChange} // Uses the helper handler
-                    >
-                      {classes.map((cls) => (
-                        <option key={cls.class_id} value={cls.class_id}>
-                          {cls.class_name}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {/* Subject Dropdown */}
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-2 block">
-                      Subject
-                    </label>
-                    <select
-                      className="w-full p-3 rounded-lg bg-muted border border-border"
-                      value={selectedSubject}
-                      onChange={(e) => setSelectedSubject(e.target.value)}
-                      disabled={subjects.length === 0}
-                    >
-                      {subjects.map((sub) => (
-                        <option key={sub} value={sub}>
-                          {sub}
-                        </option>
-                      ))}
-                      {subjects.length === 0 && (
-                        <option disabled>No subjects</option>
-                      )}
-                    </select>
-                  </div>
-                  {/* Exam Type Dropdown */}
-                  <div>
-                    <label className="text-sm text-muted-foreground mb-2 block">
-                      Exam Type
-                    </label>
-                    <select
-                      className="w-full p-3 rounded-lg bg-muted border border-border"
-                      value={examType}
-                      onChange={(e) => setExamType(e.target.value)}
-                    >
-                      {examTypes.map((type) => (
-                        // Assuming examTypes returns simple strings
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {/* Class Average */}
-                  <div className="text-center">
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Class Average
-                    </p>
-                    <p className="text-4xl font-bold text-primary">
-                      {classAverage}%
-                    </p>
-                  </div>
-                </div>
-              </Card>
-            </motion.div>
-
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
-              <Card className="glass-card p-6">
-                <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
-                  <Award className="w-6 h-6 text-primary" />
-                  Enter Marks - {selectedClass.class_name}
+                <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                  <FileText className="w-5 h-5 text-primary" />
+                  Select Test to Grade
                 </h2>
-
-                <div className="space-y-3">
-                  {students.map((student, index) => (
-                    <motion.div
-                      key={student.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 + index * 0.03 }}
-                      className="p-4 rounded-lg bg-muted/50 border border-border hover:border-primary transition-all"
-                    >
-                      <div className="flex items-center justify-between gap-4">
-                        <div className="flex items-center gap-4 flex-1">
-                          <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
-                            {student.rollNo}
+                
+                {gradingQueue.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <CheckCircle className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No tests with pending submissions.</p>
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {gradingQueue.map((test) => (
+                      <div
+                        key={test.testId}
+                        onClick={() => setSelectedTestId(test.testId)}
+                        className={`p-4 rounded-lg border cursor-pointer transition-all ${
+                          selectedTestId === test.testId
+                            ? "border-primary bg-primary/10"
+                            : "border-border hover:border-primary/50"
+                        }`}
+                      >
+                        <h3 className="font-semibold truncate">{test.testTitle}</h3>
+                        <p className="text-sm text-muted-foreground">{test.className}</p>
+                        {test.subjectName && (
+                          <Badge variant="outline" className="mt-2">{test.subjectName}</Badge>
+                        )}
+                        <div className="mt-3">
+                          <div className="flex justify-between text-xs text-muted-foreground mb-1">
+                            <span>Graded</span>
+                            <span>{test.gradedCount}/{test.totalSubmissions}</span>
                           </div>
-                          <div className="flex-1">
-                            <h3 className="font-semibold">{student.name}</h3>
-                            <p className="text-sm text-muted-foreground">
-                              Roll No: {student.rollNo}
-                            </p>
-                          </div>
+                          <Progress value={(test.gradedCount / test.totalSubmissions) * 100} className="h-2" />
                         </div>
-                        <div className="flex items-center gap-4">
-                          <div className="flex items-center gap-2">
-                            <Input
-                              type="number"
-                              value={student.marks}
-                              onChange={(e) =>
-                                updateMarks(student.id, e.target.value)
-                              }
-                              className="w-24 text-center text-lg font-bold"
-                              placeholder="0"
-                            />
-                            <span className="text-muted-foreground">
-                              / {student.maxMarks}
-                            </span>
-                          </div>
-                          <div className="text-right min-w-[60px]">
-                            <p className="text-xl font-bold text-primary">
-                              {(
-                                (parseFloat(student.marks || "0") /
-                                  parseFloat(student.maxMarks)) *
-                                100
-                              ).toFixed(0)}
-                              %
-                            </p>
-                          </div>
-                        </div>
+                        {test.pendingCount > 0 && (
+                          <Badge className="mt-2 bg-yellow-500/20 text-yellow-500 border-yellow-500/50">
+                            {test.pendingCount} Pending
+                          </Badge>
+                        )}
                       </div>
-                    </motion.div>
-                  ))}
-                </div>
+                    ))}
+                  </div>
+                )}
               </Card>
             </motion.div>
 
-            <div className="flex justify-end gap-4">
-              <Button variant="outline" className="glass">
-                <Save className="w-4 h-4 mr-2" />
-                Save Draft
-              </Button>
-              <Button
-                size="lg"
-                className="neon-glow px-8"
-                onClick={submitMarks}
-              >
-                Publish Marks
-              </Button>
-            </div>
+            {/* Student Submissions */}
+            {selectedTestId && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+                <Card className="glass-card p-6">
+                  <h2 className="text-xl font-semibold mb-4 flex items-center gap-2">
+                    <Users className="w-5 h-5 text-primary" />
+                    Student Submissions
+                    {selectedTest && (
+                      <span className="text-sm font-normal text-muted-foreground ml-2">
+                        - {selectedTest.testTitle}
+                      </span>
+                    )}
+                  </h2>
+
+                  {gradingLoading ? (
+                    <div className="flex justify-center py-8">
+                      <LoadingSpinner />
+                    </div>
+                  ) : submissions.length === 0 ? (
+                    <div className="text-center py-8 text-muted-foreground">
+                      <p>No submissions for this test yet.</p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-3">
+                      {submissions.map((sub) => (
+                        <div
+                          key={sub.submissionId}
+                          onClick={() => handleSelectSubmission(sub.submissionId)}
+                          className={`p-3 rounded-lg border cursor-pointer transition-all text-center ${
+                            selectedSubmissionId === sub.submissionId
+                              ? "border-primary bg-primary/10"
+                              : sub.isGraded
+                              ? "border-green-500/50 bg-green-500/5"
+                              : "border-border hover:border-primary/50"
+                          }`}
+                        >
+                          <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center mx-auto mb-2 text-sm font-bold">
+                            {sub.studentRollNo || "?"}
+                          </div>
+                          <p className="text-sm font-medium truncate">{sub.studentName}</p>
+                          {sub.isGraded ? (
+                            <Badge className="mt-1 bg-green-500/20 text-green-500 text-xs">
+                              {sub.totalMarksObtained} pts
+                            </Badge>
+                          ) : (
+                            <Badge className="mt-1 bg-yellow-500/20 text-yellow-500 text-xs">
+                              Pending
+                            </Badge>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </Card>
+              </motion.div>
+            )}
+
+            {/* Grading Panel */}
+            {selectedSubmission && (
+              <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+                <Card className="glass-card p-6">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                      <h2 className="text-xl font-semibold">
+                        Grading: {selectedSubmission.studentName}
+                      </h2>
+                      <p className="text-sm text-muted-foreground">
+                        Roll No: {selectedSubmission.studentRollNo} • 
+                        Submitted: {new Date(selectedSubmission.submittedAt).toLocaleString()}
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-sm text-muted-foreground">Total Score</p>
+                      <p className="text-3xl font-bold text-primary">
+                        {calculateLocalTotal()} / {selectedSubmission.answers.reduce((sum, a) => sum + a.questionMarks, 0)}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Questions Table */}
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b border-border">
+                          <th className="text-left p-3 text-sm font-semibold">Q#</th>
+                          <th className="text-left p-3 text-sm font-semibold">Type</th>
+                          <th className="text-left p-3 text-sm font-semibold">Question</th>
+                          <th className="text-left p-3 text-sm font-semibold">Student Answer</th>
+                          <th className="text-left p-3 text-sm font-semibold">Expected/Correct</th>
+                          <th className="text-center p-3 text-sm font-semibold">Max</th>
+                          <th className="text-center p-3 text-sm font-semibold">Marks</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {selectedSubmission.answers.map((answer, idx) => {
+                          const isMCQ = answer.questionType === "MCQ";
+                          const isCorrect = isMCQ && answer.selectedOptionIndex === answer.correctOptionIndex;
+                          
+                          // For MCQ: show selected option text
+                          // For subjective: show the text answer
+                          const studentAnswer = isMCQ
+                            ? (answer.selectedOptionIndex !== null 
+                                ? answer.options[answer.selectedOptionIndex] 
+                                : "Not answered")
+                            : (answer.subjectiveAnswerText || "Not answered");
+                          
+                          // For MCQ: show correct option
+                          // For subjective: show expected answer (if any)
+                          const expectedAnswer = isMCQ
+                            ? (answer.correctOptionIndex !== null ? answer.options[answer.correctOptionIndex] : "-")
+                            : (answer.expectedAnswerText || "Teacher will evaluate");
+
+                          const getTypeBadge = () => {
+                            switch (answer.questionType) {
+                              case "MCQ":
+                                return <Badge className="bg-blue-500/20 text-blue-500 text-xs">MCQ</Badge>;
+                              case "Essay":
+                                return <Badge className="bg-purple-500/20 text-purple-500 text-xs">Essay</Badge>;
+                              case "Short Answer":
+                                return <Badge className="bg-green-500/20 text-green-500 text-xs">Short</Badge>;
+                              case "Very Short Answer":
+                                return <Badge className="bg-orange-500/20 text-orange-500 text-xs">V.Short</Badge>;
+                              default:
+                                return null;
+                            }
+                          };
+
+                          return (
+                            <tr key={answer.answerId} className="border-b border-border hover:bg-muted/30">
+                              <td className="p-3 font-semibold">Q{idx + 1}</td>
+                              <td className="p-3">{getTypeBadge()}</td>
+                              <td className="p-3 text-sm max-w-xs">
+                                <p className="line-clamp-2">{answer.questionText}</p>
+                                {answer.chapter && (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-blue-500/20 text-blue-500 mr-1">
+                                    {answer.chapter}
+                                  </span>
+                                )}
+                                {answer.topic && (
+                                  <span className="text-xs px-2 py-0.5 rounded bg-purple-500/20 text-purple-500">
+                                    {answer.topic}
+                                  </span>
+                                )}
+                              </td>
+                              <td className={`p-3 text-sm max-w-md ${isMCQ ? (isCorrect ? "text-green-500" : "text-red-500") : ""}`}>
+                                {isMCQ ? (
+                                  studentAnswer
+                                ) : (
+                                  <div className="max-h-32 overflow-y-auto p-2 bg-muted/30 rounded text-foreground">
+                                    {studentAnswer}
+                                  </div>
+                                )}
+                              </td>
+                              <td className="p-3 text-sm text-green-500 max-w-xs">
+                                {isMCQ ? (
+                                  expectedAnswer
+                                ) : (
+                                  <span className="text-muted-foreground italic text-xs">
+                                    {expectedAnswer}
+                                  </span>
+                                )}
+                              </td>
+                              <td className="p-3 text-center font-semibold">{answer.questionMarks}</td>
+                              <td className="p-3">
+                                <Input
+                                  type="number"
+                                  min="0"
+                                  max={answer.questionMarks}
+                                  value={localGrades[answer.answerId] || 0}
+                                  onChange={(e) =>
+                                    handleGradeChange(
+                                      answer.answerId,
+                                      parseFloat(e.target.value) || 0,
+                                      answer.questionMarks
+                                    )
+                                  }
+                                  className="w-20 text-center font-bold"
+                                />
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* Save Button */}
+                  <div className="flex justify-end gap-4 mt-6">
+                    <Button
+                      size="lg"
+                      className="neon-glow px-8"
+                      onClick={handleSaveGrades}
+                      disabled={gradingLoading}
+                    >
+                      {gradingLoading ? (
+                        <>Saving...</>
+                      ) : (
+                        <>
+                          <CheckCircle className="w-4 h-4 mr-2" />
+                          Save & Finalize Grades
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                </Card>
+              </motion.div>
+            )}
           </TabsContent>
 
-          {/* Question-wise Grading Content */}
-          <TabsContent value="questionwise" className="space-y-6 mt-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.1 }}
-            >
+          {/* Manual Entry Tab */}
+          <TabsContent value="manual" className="space-y-6 mt-6">
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="glass-card p-6">
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <div>
-                    <label className="text-sm text-muted-foreground mb-2 block">
-                      Class
-                    </label>
+                    <label className="text-sm text-muted-foreground mb-2 block">Class</label>
                     <select
                       className="w-full p-3 rounded-lg bg-muted border border-border"
-                      value={selectedClass.class_id}
+                      value={selectedClass?.class_id || ""}
                       onChange={handleClassChange}
                     >
                       {classes.map((cls) => (
@@ -539,38 +578,26 @@ const TeacherMarks = () => {
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground mb-2 block">
-                      Subject
-                    </label>
+                    <label className="text-sm text-muted-foreground mb-2 block">Subject</label>
                     <select
                       className="w-full p-3 rounded-lg bg-muted border border-border"
                       value={selectedSubject}
                       onChange={(e) => setSelectedSubject(e.target.value)}
-                      disabled={subjects.length === 0}
                     >
                       {subjects.map((sub) => (
-                        <option key={sub} value={sub}>
-                          {sub}
-                        </option>
+                        <option key={sub} value={sub}>{sub}</option>
                       ))}
-                      {subjects.length === 0 && (
-                        <option disabled>No subjects</option>
-                      )}
                     </select>
                   </div>
                   <div>
-                    <label className="text-sm text-muted-foreground mb-2 block">
-                      Exam Type
-                    </label>
+                    <label className="text-sm text-muted-foreground mb-2 block">Exam Type</label>
                     <select
                       className="w-full p-3 rounded-lg bg-muted border border-border"
                       value={examType}
                       onChange={(e) => setExamType(e.target.value)}
                     >
                       {examTypes.map((type) => (
-                        <option key={type} value={type}>
-                          {type}
-                        </option>
+                        <option key={type} value={type}>{type}</option>
                       ))}
                     </select>
                   </div>
@@ -578,241 +605,53 @@ const TeacherMarks = () => {
               </Card>
             </motion.div>
 
-            {/* Questions Setup */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.2 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
               <Card className="glass-card p-6">
-                <div className="flex items-center justify-between mb-6">
-                  <h2 className="text-2xl font-semibold">Questions Setup</h2>
-                  <Button onClick={addQuestion} className="neon-glow">
-                    <Award className="w-4 h-4 mr-2" />
-                    Add Question
-                  </Button>
-                </div>
+                <h2 className="text-2xl font-semibold mb-6 flex items-center gap-2">
+                  <Award className="w-6 h-6 text-primary" />
+                  Students - {selectedClass?.class_name}
+                </h2>
 
-                <div className="space-y-4">
-                  {questions.map((question, index) => (
-                    <motion.div
-                      key={question.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: 0.3 + index * 0.03 }}
-                      className="p-4 rounded-lg bg-muted/50 border border-border"
-                    >
-                      <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-                        <div>
-                          <label className="text-xs text-muted-foreground block mb-1">
-                            Q{question.questionNumber}
-                          </label>
-                          <Input
-                            type="number"
-                            value={question.maxMarks}
-                            onChange={(e) =>
-                              updateQuestion(
-                                question.id,
-                                "maxMarks",
-                                parseInt(e.target.value) || 0
-                              )
-                            }
-                            placeholder="Max Marks"
-                            className="text-center font-bold"
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="text-xs text-muted-foreground block mb-1">
-                            Chapter
-                          </label>
-                          <Input
-                            value={question.chapter}
-                            onChange={(e) =>
-                              updateQuestion(question.id, "chapter", e.target.value)
-                            }
-                            placeholder="e.g., Algebra"
-                          />
-                        </div>
-                        <div className="md:col-span-2">
-                          <label className="text-xs text-muted-foreground block mb-1">
-                            Topic
-                          </label>
-                          <div className="flex gap-2">
+                {studentsLoading ? (
+                  <div className="flex justify-center py-8">
+                    <LoadingSpinner />
+                  </div>
+                ) : classStudents.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    <Users className="w-12 h-12 mx-auto mb-4 opacity-50" />
+                    <p>No students found in this class.</p>
+                  </div>
+                ) : (
+                  <div className="space-y-3">
+                    {classStudents.map((student, index) => (
+                      <motion.div
+                        key={student.id}
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: 0.05 * index }}
+                        className="p-4 rounded-lg bg-muted/50 border border-border hover:border-primary transition-all"
+                      >
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center font-bold text-primary">
+                              {student.rollNo || "?"}
+                            </div>
+                            <div>
+                              <h3 className="font-semibold">{student.name}</h3>
+                              <p className="text-sm text-muted-foreground">Roll No: {student.rollNo}</p>
+                            </div>
+                          </div>
+                          <div className="flex items-center gap-2">
                             <Input
-                              value={question.topic}
-                              onChange={(e) =>
-                                updateQuestion(question.id, "topic", e.target.value)
-                              }
-                              placeholder="e.g., Linear Equations"
+                              type="number"
+                              className="w-24 text-center text-lg font-bold"
+                              placeholder="0"
                             />
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => removeQuestion(question.id)}
-                              className="text-destructive hover:text-destructive"
-                            >
-                              <X className="w-4 h-4" />
-                            </Button>
+                            <span className="text-muted-foreground">/ 100</span>
                           </div>
                         </div>
-                      </div>
-                    </motion.div>
-                  ))}
-                </div>
-
-                <div className="mt-4 p-4 rounded-lg bg-primary/5 border border-primary/30">
-                  <p className="text-sm font-semibold">
-                    Total Max Marks: <span className="text-primary text-lg">{getTotalMaxMarks()}</span>
-                  </p>
-                </div>
-              </Card>
-            </motion.div>
-
-            {/* Student Selection & Grading */}
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3 }}
-            >
-              <Card className="glass-card p-6">
-                <h2 className="text-2xl font-semibold mb-6">Grade Students</h2>
-
-                {/* Student Selector */}
-                <div className="mb-6">
-                  <label className="text-sm text-muted-foreground mb-2 block">
-                    Select Student
-                  </label>
-                  <select
-                    className="w-full p-3 rounded-lg bg-muted border border-border"
-                    value={selectedStudentId || ""}
-                    onChange={(e) =>
-                      setSelectedStudentId(
-                        e.target.value ? parseInt(e.target.value) : null
-                      )
-                    }
-                  >
-                    <option value="">-- Select a student --</option>
-                    {students.map((student) => (
-                      <option key={student.id} value={student.id}>
-                        {student.name} (Roll No: {student.rollNo})
-                      </option>
+                      </motion.div>
                     ))}
-                  </select>
-                </div>
-
-                {/* Grading Table */}
-                {selectedStudentId && (
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between p-4 rounded-lg bg-primary/10 border border-primary/30">
-                      <div>
-                        <h3 className="text-lg font-semibold">
-                          {students.find((s) => s.id === selectedStudentId)?.name}
-                        </h3>
-                        <p className="text-sm text-muted-foreground">
-                          Roll No:{" "}
-                          {students.find((s) => s.id === selectedStudentId)?.rollNo}
-                        </p>
-                      </div>
-                      <div className="text-right">
-                        <p className="text-sm text-muted-foreground">Total Score</p>
-                        <p className="text-3xl font-bold text-primary">
-                          {getStudentTotal(selectedStudentId)} /{" "}
-                          {getTotalMaxMarks()}
-                        </p>
-                        <p className="text-sm text-muted-foreground">
-                          {getTotalMaxMarks() > 0
-                            ? (
-                              (getStudentTotal(selectedStudentId) /
-                                getTotalMaxMarks()) *
-                              100
-                            ).toFixed(1)
-                            : 0}
-                          %
-                        </p>
-                      </div>
-                    </div>
-
-                    <div className="overflow-x-auto">
-                      <table className="w-full">
-                        <thead>
-                          <tr className="border-b border-border">
-                            <th className="text-left p-3 text-sm font-semibold">
-                              Question
-                            </th>
-                            <th className="text-left p-3 text-sm font-semibold">
-                              Chapter
-                            </th>
-                            <th className="text-left p-3 text-sm font-semibold">
-                              Topic
-                            </th>
-                            <th className="text-center p-3 text-sm font-semibold">
-                              Max Marks
-                            </th>
-                            <th className="text-center p-3 text-sm font-semibold">
-                              Marks Obtained
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {questions.map((question) => {
-                            const currentGrade =
-                              studentGrades.find(
-                                (g) => g.studentId === selectedStudentId
-                              )?.questionGrades[question.id] || 0;
-
-                            return (
-                              <tr
-                                key={question.id}
-                                className="border-b border-border hover:bg-muted/30 transition-colors"
-                              >
-                                <td className="p-3 font-semibold">
-                                  Q{question.questionNumber}
-                                </td>
-                                <td className="p-3 text-sm">
-                                  <span className="px-2 py-1 rounded bg-blue-500/20 text-blue-500">
-                                    {question.chapter || "-"}
-                                  </span>
-                                </td>
-                                <td className="p-3 text-sm">
-                                  <span className="px-2 py-1 rounded bg-purple-500/20 text-purple-500">
-                                    {question.topic || "-"}
-                                  </span>
-                                </td>
-                                <td className="p-3 text-center font-semibold">
-                                  {question.maxMarks}
-                                </td>
-                                <td className="p-3">
-                                  <Input
-                                    type="number"
-                                    min="0"
-                                    max={question.maxMarks}
-                                    value={currentGrade}
-                                    onChange={(e) =>
-                                      updateQuestionGrade(
-                                        selectedStudentId,
-                                        question.id,
-                                        Math.min(
-                                          parseFloat(e.target.value) || 0,
-                                          question.maxMarks
-                                        )
-                                      )
-                                    }
-                                    className="w-24 text-center font-bold mx-auto"
-                                  />
-                                </td>
-                              </tr>
-                            );
-                          })}
-                        </tbody>
-                      </table>
-                    </div>
-                  </div>
-                )}
-
-                {!selectedStudentId && (
-                  <div className="text-center py-12 text-muted-foreground">
-                    <Award className="w-16 h-16 mx-auto mb-4 opacity-50" />
-                    <p>Please select a student to start grading</p>
                   </div>
                 )}
               </Card>
@@ -823,22 +662,15 @@ const TeacherMarks = () => {
                 <Save className="w-4 h-4 mr-2" />
                 Save Draft
               </Button>
-              <Button
-                size="lg"
-                className="neon-glow px-8"
-                onClick={submitMarks}
-              >
+              <Button size="lg" className="neon-glow px-8">
                 Publish Marks
               </Button>
             </div>
           </TabsContent>
 
-          {/* Bulk Upload Content (Unchanged) */}
+          {/* Bulk Upload Tab */}
           <TabsContent value="bulk" className="space-y-6 mt-6">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-            >
+            <motion.div initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
               <Card className="glass-card p-8 text-center">
                 <Upload className="w-16 h-16 text-primary mx-auto mb-4 neon-glow" />
                 <h3 className="text-2xl font-semibold mb-2">Upload CSV File</h3>
@@ -860,9 +692,7 @@ const TeacherMarks = () => {
             <Card className="glass-card p-6 bg-primary/5 border-primary/30">
               <h3 className="font-semibold mb-2">📝 CSV Format Instructions</h3>
               <ul className="text-sm text-muted-foreground space-y-1">
-                <li>
-                  • First row should contain headers: Roll No, Name, Marks
-                </li>
+                <li>• First row should contain headers: Roll No, Name, Marks</li>
                 <li>• Each row represents one student</li>
                 <li>• Marks should be numeric values</li>
                 <li>• Save the file in CSV format before uploading</li>

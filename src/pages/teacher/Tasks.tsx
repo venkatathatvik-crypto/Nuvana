@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
 import { CheckSquare, Clock, BookOpen, AlertCircle, Calendar, ArrowRight, CheckCircle2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
@@ -7,16 +7,37 @@ import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
+import { useAuth } from "@/auth/AuthContext";
+import { getTeacherGradingQueue, GradingQueueItem } from "@/services/academic";
+import LoadingSpinner from "@/components/LoadingSpinner";
 
 const TeacherTasks = () => {
     const navigate = useNavigate();
+    const { profile, profileLoading } = useAuth();
+    const [gradingTasks, setGradingTasks] = useState<GradingQueueItem[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    // Mock Data for Grading Tasks
-    const [gradingTasks, setGradingTasks] = useState([
-        { id: 1, title: "Math Midterm Papers", class: "Class 10A", pending: 15, total: 45, due: "Today", urgency: "high" },
-        { id: 2, title: "Physics Lab Reports", class: "Class 11B", pending: 28, total: 40, due: "Tomorrow", urgency: "medium" },
-        { id: 3, title: "English Essays", class: "Class 10B", pending: 5, total: 42, due: "In 2 days", urgency: "low" },
-    ]);
+    useEffect(() => {
+        const fetchGradingQueue = async () => {
+            if (profileLoading) return;
+            if (!profile) {
+                setLoading(false);
+                return;
+            }
+
+            try {
+                const queue = await getTeacherGradingQueue(profile.id);
+                setGradingTasks(queue);
+            } catch (error: any) {
+                console.error("Error fetching grading queue:", error);
+                toast.error("Failed to load grading queue");
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchGradingQueue();
+    }, [profile, profileLoading]);
 
     // Mock Data for Syllabus/Topics
     const [todaysSchedule, setTodaysSchedule] = useState([
@@ -53,14 +74,24 @@ const TeacherTasks = () => {
         toast.success("Topic marked as covered!");
     };
 
-    const getUrgencyColor = (urgency: string) => {
-        switch (urgency) {
-            case "high": return "text-red-500 border-red-500/50 bg-red-500/10";
-            case "medium": return "text-yellow-500 border-yellow-500/50 bg-yellow-500/10";
-            case "low": return "text-green-500 border-green-500/50 bg-green-500/10";
-            default: return "text-muted-foreground";
+    const getUrgencyBadge = (pendingCount: number) => {
+        if (pendingCount > 20) {
+            return <Badge variant="outline" className="text-red-500 border-red-500/50 bg-red-500/10">High Priority</Badge>;
+        } else if (pendingCount > 10) {
+            return <Badge variant="outline" className="text-yellow-500 border-yellow-500/50 bg-yellow-500/10">{pendingCount} Pending</Badge>;
+        } else if (pendingCount > 0) {
+            return <Badge variant="outline" className="text-green-500 border-green-500/50 bg-green-500/10">{pendingCount} Pending</Badge>;
         }
+        return <Badge variant="outline" className="text-green-500 border-green-500/50 bg-green-500/10">All Graded</Badge>;
     };
+
+    if (loading || profileLoading) {
+        return (
+            <div className="flex items-center justify-center min-h-screen">
+                <LoadingSpinner />
+            </div>
+        );
+    }
 
     return (
         <div className="min-h-screen p-6">
@@ -94,28 +125,34 @@ const TeacherTasks = () => {
 
                         <div className="space-y-4">
                             {gradingTasks.map((task) => (
-                                <Card key={task.id} className="glass-card p-6 hover:border-neon-pink/50 transition-colors">
+                                <Card key={task.testId} className="glass-card p-6 hover:border-neon-pink/50 transition-colors">
                                     <div className="flex justify-between items-start mb-4">
                                         <div>
-                                            <h3 className="font-semibold text-lg">{task.title}</h3>
-                                            <p className="text-sm text-muted-foreground">{task.class}</p>
+                                            <h3 className="font-semibold text-lg">{task.testTitle}</h3>
+                                            <p className="text-sm text-muted-foreground">{task.className}</p>
+                                            {task.subjectName && (
+                                                <p className="text-xs text-primary">{task.subjectName}</p>
+                                            )}
                                         </div>
-                                        <Badge variant="outline" className={getUrgencyColor(task.urgency)}>
-                                            Due {task.due}
-                                        </Badge>
+                                        {getUrgencyBadge(task.pendingCount)}
                                     </div>
 
                                     <div className="space-y-2">
                                         <div className="flex justify-between text-sm">
                                             <span className="text-muted-foreground">Progress</span>
-                                            <span>{task.total - task.pending} / {task.total} graded</span>
+                                            <span>{task.gradedCount} / {task.totalSubmissions} graded</span>
                                         </div>
-                                        <Progress value={((task.total - task.pending) / task.total) * 100} className="h-2" />
+                                        <Progress value={(task.gradedCount / task.totalSubmissions) * 100} className="h-2" />
                                     </div>
 
                                     <div className="mt-4 flex justify-end">
-                                        <Button size="sm" className="neon-glow" onClick={() => navigate("/teacher/marks")}>
-                                            Grade Now <ArrowRight className="ml-2 w-4 h-4" />
+                                        <Button 
+                                            size="sm" 
+                                            className="neon-glow" 
+                                            onClick={() => navigate(`/teacher/marks?testId=${task.testId}`)}
+                                            disabled={task.pendingCount === 0}
+                                        >
+                                            {task.pendingCount > 0 ? "Grade Now" : "View"} <ArrowRight className="ml-2 w-4 h-4" />
                                         </Button>
                                     </div>
                                 </Card>

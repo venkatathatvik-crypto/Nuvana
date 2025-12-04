@@ -33,10 +33,17 @@ const TestCreate = () => {
             }
 
             // Transform questions to match service format
+            if (!data.questions || data.questions.length === 0) {
+                toast.error("Please add at least one question");
+                return;
+            }
+
             const questions = data.questions.map((q: any) => ({
                 text: q.text,
-                options: q.options,
-                correctOptionIndex: q.correctOptionIndex,
+                questionType: q.questionType || "MCQ",
+                options: q.questionType === "MCQ" ? (q.options || []) : undefined,
+                correctOptionIndex: q.questionType === "MCQ" ? q.correctOptionIndex : undefined,
+                expectedAnswerText: q.expectedAnswerText,
                 marks: q.marks,
                 chapter: q.chapter,
                 topic: q.topic,
