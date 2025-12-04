@@ -173,7 +173,7 @@ const Dashboard = () => {
         >
           <div>
             <h1 className="text-4xl font-bold neon-text mb-2">
-              Welcome back, Student! 👋
+              Welcome back, {profile?.name || "Student"}! 👋
             </h1>
             <p className="text-muted-foreground">
               Here's what's happening today

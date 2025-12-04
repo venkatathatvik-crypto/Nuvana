@@ -85,7 +85,7 @@ const TeacherDashboard = () => {
           className="flex items-center justify-between"
         >
           <div>
-            <h1 className="text-4xl font-bold neon-text mb-2">Teacher Dashboard 📚</h1>
+            <h1 className="text-4xl font-bold neon-text mb-2">Welcome, {profile?.name || "Teacher"}! 📚</h1>
             <p className="text-muted-foreground">Manage your classes and students efficiently</p>
           </div>
 

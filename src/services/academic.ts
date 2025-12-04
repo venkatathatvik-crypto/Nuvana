@@ -2818,6 +2818,7 @@ export const getAttendanceForDate = async (
 
 // Save attendance records for a date
 export const saveAttendance = async (
+  classId: string,
   attendanceDate: string,
   students: StudentAttendance[],
   teacherId: string
