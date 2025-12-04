@@ -36,8 +36,10 @@ const StudentTests = () => {
                 }
 
                 // Fetch published tests for student's class (with submission status)
+                // Filter out Internal Assessments (exam_type_id = 4) - those go to Events page
                 const testsData = await getStudentTests(studentData.class_id, profile.id);
-                setTests(testsData);
+                const filteredTests = testsData.filter(test => test.examTypeId !== 4);
+                setTests(filteredTests);
             } catch (error: any) {
                 console.error("Error fetching tests:", error);
                 toast.error("Failed to load tests");

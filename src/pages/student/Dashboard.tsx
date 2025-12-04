@@ -21,6 +21,7 @@ import {
   getOverallAttendancePercentage,
   getStudentAverageMarksPercentage,
   getStudentPendingTestsCount,
+  getStudentPendingAssessmentsCount,
 } from "@/services/academic";
 import LoadingSpinner from "@/components/LoadingSpinner";
 import { formatDistanceToNow } from "date-fns";
@@ -39,6 +40,8 @@ const Dashboard = () => {
   const [loadingMarks, setLoadingMarks] = useState(true);
   const [pendingTests, setPendingTests] = useState<number>(0);
   const [loadingTests, setLoadingTests] = useState(true);
+  const [pendingAssessments, setPendingAssessments] = useState<number>(0);
+  const [loadingAssessments, setLoadingAssessments] = useState(true);
 
   const handleLogout = async () => {
     await logout();
@@ -54,6 +57,7 @@ const Dashboard = () => {
         setLoadingAttendance(false);
         setLoadingMarks(false);
         setLoadingTests(false);
+        setLoadingAssessments(false);
         return;
       }
 
@@ -66,9 +70,13 @@ const Dashboard = () => {
         const marks = await getStudentAverageMarksPercentage(profile.id);
         setAverageMarks(marks);
 
-        // Fetch pending tests count
+        // Fetch pending tests count (excluding Internal Assessments)
         const pending = await getStudentPendingTestsCount(profile.id);
         setPendingTests(pending);
+
+        // Fetch pending Internal Assessments count
+        const assessments = await getStudentPendingAssessmentsCount(profile.id);
+        setPendingAssessments(assessments);
 
         // Get student data to get class_id
         const studentData = await getStudentData(profile.id);
@@ -87,6 +95,7 @@ const Dashboard = () => {
         setLoadingAttendance(false);
         setLoadingMarks(false);
         setLoadingTests(false);
+        setLoadingAssessments(false);
       }
     };
 
@@ -138,7 +147,7 @@ const Dashboard = () => {
     },
     {
       label: "Assignments",
-      value: "5",
+      value: loadingAssessments ? "..." : (pendingAssessments > 0 ? `${pendingAssessments} Pending` : "0"),
       icon: FileText,
       color: "text-neon-blue",
       path: "/student/events",
