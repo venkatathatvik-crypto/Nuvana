@@ -105,8 +105,8 @@ const Events = () => {
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
           >
-            <h1 className="text-4xl font-bold neon-text">Events & Deadlines</h1>
-            <p className="text-muted-foreground">Stay updated with college activities</p>
+            <h1 className="text-4xl font-bold neon-text">Assignments & Deadlines</h1>
+            <p className="text-muted-foreground">Stay on track with your academics</p>
           </motion.div>
         </div>
 

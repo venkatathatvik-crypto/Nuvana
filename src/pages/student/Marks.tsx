@@ -5,6 +5,18 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useNavigate } from "react-router-dom";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
 
 const Marks = () => {
   const navigate = useNavigate();
@@ -85,6 +97,43 @@ const Marks = () => {
     },
   ];
 
+  // Prepare chart data for subject-wise performance
+  const subjectChartData = subjects.map(subject => ({
+    subject: subject.name,
+    average: subject.average,
+    midterm: (subject.midterm.scored / subject.midterm.total) * 100,
+    finals: (subject.finals.scored / subject.finals.total) * 100,
+    internal: (subject.internal.scored / subject.internal.total) * 100,
+  }));
+
+  // Prepare trend data (showing progression across tests)
+  const trendData = [
+    {
+      test: "Unit Test 1",
+      Math: 90,
+      Physics: 80,
+      Chemistry: 96,
+      CS: 92,
+      English: 76,
+    },
+    {
+      test: "Unit Test 2",
+      Math: 96,
+      Physics: 84,
+      Chemistry: 94,
+      CS: 90,
+      English: 80,
+    },
+    {
+      test: "Mid Term",
+      Math: 85,
+      Physics: 78,
+      Chemistry: 92,
+      CS: 88,
+      English: 75,
+    },
+  ];
+
   const getGradeColor = (grade: string) => {
     if (grade.startsWith("A")) return "text-neon-cyan";
     if (grade.startsWith("B")) return "text-neon-purple";
@@ -128,6 +177,48 @@ const Marks = () => {
                 <p className="text-sm text-muted-foreground mt-2">Out of {overallPerformance.totalStudents} students</p>
               </div>
             </div>
+          </Card>
+        </motion.div>
+
+        {/* Performance Visualization Charts */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="grid grid-cols-1 lg:grid-cols-2 gap-6"
+        >
+          {/* Subject-wise Average Chart */}
+          <Card className="glass-card p-6">
+            <h3 className="text-xl font-semibold mb-4">Subject-wise Average Performance</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <BarChart data={subjectChartData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="subject" angle={-15} textAnchor="end" height={80} />
+                <YAxis domain={[0, 100]} />
+                <Tooltip />
+                <Legend />
+                <Bar dataKey="average" fill="#8884d8" name="Average %" />
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+
+          {/* Performance Trend Chart */}
+          <Card className="glass-card p-6">
+            <h3 className="text-xl font-semibold mb-4">Performance Trend Over Time</h3>
+            <ResponsiveContainer width="100%" height={300}>
+              <LineChart data={trendData}>
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis dataKey="test" />
+                <YAxis domain={[0, 100]} />
+                <Tooltip />
+                <Legend />
+                <Line type="monotone" dataKey="Math" stroke="#8884d8" strokeWidth={2} />
+                <Line type="monotone" dataKey="Physics" stroke="#82ca9d" strokeWidth={2} />
+                <Line type="monotone" dataKey="Chemistry" stroke="#ffc658" strokeWidth={2} />
+                <Line type="monotone" dataKey="CS" stroke="#ff7c7c" strokeWidth={2} />
+                <Line type="monotone" dataKey="English" stroke="#a78bfa" strokeWidth={2} />
+              </LineChart>
+            </ResponsiveContainer>
           </Card>
         </motion.div>
 

@@ -11,10 +11,10 @@ const Attendance = () => {
   const overallAttendance = 87;
 
   const subjectAttendance = [
-    { 
-      subject: "Mathematics", 
-      present: 42, 
-      total: 48, 
+    {
+      subject: "Mathematics",
+      present: 42,
+      total: 48,
       percentage: 87.5,
       trend: "up",
       recentClasses: [
@@ -25,10 +25,10 @@ const Attendance = () => {
         { date: "2024-11-16", status: "present" },
       ]
     },
-    { 
-      subject: "Physics", 
-      present: 38, 
-      total: 45, 
+    {
+      subject: "Physics",
+      present: 38,
+      total: 45,
       percentage: 84.4,
       trend: "down",
       recentClasses: [
@@ -39,10 +39,10 @@ const Attendance = () => {
         { date: "2024-11-15", status: "present" },
       ]
     },
-    { 
-      subject: "Chemistry", 
-      present: 40, 
-      total: 44, 
+    {
+      subject: "Chemistry",
+      present: 40,
+      total: 44,
       percentage: 90.9,
       trend: "up",
       recentClasses: [
@@ -53,10 +53,10 @@ const Attendance = () => {
         { date: "2024-11-17", status: "absent" },
       ]
     },
-    { 
-      subject: "Computer Science", 
-      present: 44, 
-      total: 50, 
+    {
+      subject: "Computer Science",
+      present: 44,
+      total: 50,
       percentage: 88.0,
       trend: "up",
       recentClasses: [
@@ -67,10 +67,10 @@ const Attendance = () => {
         { date: "2024-11-18", status: "present" },
       ]
     },
-    { 
-      subject: "English", 
-      present: 36, 
-      total: 42, 
+    {
+      subject: "English",
+      present: 36,
+      total: 42,
       percentage: 85.7,
       trend: "down",
       recentClasses: [
@@ -110,7 +110,7 @@ const Attendance = () => {
                 <p className="text-lg text-muted-foreground mb-2">Overall Attendance</p>
                 <p className="text-6xl font-bold neon-text">{overallAttendance}%</p>
                 <p className="text-sm text-muted-foreground mt-2">
-                  Keep it above 75% to avoid attendance issues
+
                 </p>
               </div>
               <div className="relative w-48 h-48">
@@ -170,7 +170,7 @@ const Attendance = () => {
                         </p>
                       </div>
                       {subject.trend === "up" ? (
-                        <TrendingUp className="w-6 h-6 text-neon-cyan" />
+                        <TrendingUp className="w-6 h-6 text-green-500" />
                       ) : (
                         <TrendingDown className="w-6 h-6 text-destructive" />
                       )}
@@ -185,11 +185,10 @@ const Attendance = () => {
                       {subject.recentClasses.map((cls, idx) => (
                         <div
                           key={idx}
-                          className={`px-3 py-2 rounded-lg text-xs font-medium ${
-                            cls.status === "present"
-                              ? "bg-neon-cyan/20 text-neon-cyan border border-neon-cyan/30"
-                              : "bg-destructive/20 text-destructive border border-destructive/30"
-                          }`}
+                          className={`px-3 py-2 rounded-lg text-xs font-medium ${cls.status === "present"
+                            ? "bg-green-500/20 text-green-500 border border-green-500/30"
+                            : "bg-destructive/20 text-destructive border border-destructive/30"
+                            }`}
                         >
                           <p>{cls.date}</p>
                           <p className="capitalize">{cls.status}</p>

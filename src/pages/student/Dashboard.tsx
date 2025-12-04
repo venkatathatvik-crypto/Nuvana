@@ -49,12 +49,19 @@ const Dashboard = () => {
     fetchStudentAnnouncements();
   }, [profile, profileLoading]);
 
-  const quickStats = [
-    { label: "Attendance", value: "87%", icon: Users, color: "text-neon-cyan", path: "/student/attendance" },
-    { label: "Upcoming Tests", value: "3", icon: Calendar, color: "text-neon-purple", path: "/student/events" },
-    { label: "Assignments", value: "5", icon: FileText, color: "text-neon-pink", path: "/student/events" },
+  const quickActions = [
+    { label: "Attendance", value: "87%", icon: Users, color: "text-blue-500", path: "/student/attendance" },
+    { label: "Notes", value: "Access", icon: StickyNote, color: "text-indigo-500", path: "/student/notes" },
+    { label: "Books", value: "Library", icon: BookOpen, color: "text-green-500", path: "/student/books" },
+    { label: "My Analytics", value: "View", icon: BarChart2, color: "text-blue-500", path: "/student/analytics" },
+    { label: "My Tests", value: "Take", icon: FileText, color: "text-blue-500", path: "/student/tests" },
+    { label: "Timetable", value: "View", icon: Calendar, color: "text-indigo-500", path: "/student/timetable" },
+    { label: "Assignments", value: "5", icon: FileText, color: "text-green-500", path: "/student/events" },
     { label: "Average Marks", value: "82%", icon: Award, color: "text-blue-500", path: "/student/marks" },
-    { label: "My Analytics", value: "View", icon: BarChart2, color: "text-green-500", path: "/student/analytics" },
+
+
+
+
   ];
 
   const todayClasses = [
@@ -98,30 +105,32 @@ const Dashboard = () => {
           </div>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {quickStats.map((stat, index) => (
+        {/* Quick Actions Grid - All actions at the top */}
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+          {quickActions.map((action, index) => (
             <motion.div
-              key={stat.label}
+              key={action.label}
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: index * 0.1 }}
+              transition={{ delay: index * 0.05 }}
             >
               <Card
                 className="glass-card p-6 hover:neon-glow transition-all duration-300 cursor-pointer"
-                onClick={() => navigate(stat.path)}
+                onClick={() => navigate(action.path)}
               >
                 <div className="flex items-center justify-between">
                   <div>
-                    <p className="text-sm text-muted-foreground">{stat.label}</p>
-                    <p className="text-3xl font-bold mt-2">{stat.value}</p>
+                    <p className="text-sm text-muted-foreground">{action.label}</p>
+                    <p className="text-2xl font-bold mt-2">{action.value}</p>
                   </div>
-                  <stat.icon className={`w-10 h-10 ${stat.color}`} />
+                  <action.icon className={`w-10 h-10 ${action.color}`} />
                 </div>
               </Card>
             </motion.div>
           ))}
         </div>
 
+        {/* Today's Classes and Announcements */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <motion.div
             initial={{ opacity: 0, x: -20 }}
@@ -155,7 +164,7 @@ const Dashboard = () => {
           >
             <Card className="glass-card p-6">
               <div className="flex items-center gap-2 mb-6">
-                <Bell className="w-6 h-6 text-accent" />
+                <Bell className="mr-2 h-6 text-yellow-500" />
                 <h2 className="text-2xl font-semibold">Announcements</h2>
               </div>
               {loadingAnnouncements ? (
@@ -188,46 +197,6 @@ const Dashboard = () => {
             </Card>
           </motion.div>
         </div>
-
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ delay: 0.6 }}
-          className="grid grid-cols-2 md:grid-cols-3 gap-4"
-        >
-          <Button
-            className="h-24 text-lg bg-secondary/50 backdrop-blur-md border-white/10 hover:neon-glow"
-            variant="outline"
-            onClick={() => navigate("/student/timetable")}
-          >
-            <Calendar className="mr-2 w-6 h-6" />
-            Timetable
-          </Button>
-          <Button
-            className="h-24 text-lg bg-secondary/50 backdrop-blur-md border-white/10 hover:neon-glow"
-            variant="outline"
-            onClick={() => navigate("/student/notes")}
-          >
-            <StickyNote className="mr-2 w-6 h-6" />
-            Notes
-          </Button>
-          <Button
-            className="h-24 text-lg bg-secondary/50 backdrop-blur-md border-white/10 hover:neon-glow"
-            variant="outline"
-            onClick={() => navigate("/student/books")}
-          >
-            <BookOpen className="mr-2 w-6 h-6" />
-            Books
-          </Button>
-          <Button
-            className="h-24 text-lg glass hover:neon-glow"
-            variant="outline"
-            onClick={() => navigate("/student/tests")}
-          >
-            <FileText className="mr-2 w-6 h-6" />
-            My Tests
-          </Button>
-        </motion.div>
       </div>
     </div>
   );

@@ -60,10 +60,10 @@ const App = () => (
         <TooltipProvider>
           <Toaster />
           <Sonner />
-          <ThemeToggle />
           <InstallPWA />
 
           <BrowserRouter>
+            <ThemeToggle />
             <AppBackgroundLayout>
               <Routes>
                 {/* Public Routes */}
@@ -307,4 +307,4 @@ const App = () => (
   </QueryClientProvider>
 );
 
-  export default App;
+export default App;
